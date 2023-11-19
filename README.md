@@ -176,22 +176,25 @@ the record of auction AID.
 
 14. `RRC status [host_UID auction_name asset_fname start_value start_date-time timeactive]`\
 `[\nB bidder_UID bid_value bid_date-time bid_sec_time]*`\
-`[\nE end_date-time end_sec_time]`\
-In reply to a SRC request the AS reply status is NOK if the auction AID does
+`[\nE end_date-time end_sec_time]`
+
+    In reply to a SRC request the AS reply status is NOK if the auction AID does
 not exist. Otherwise the reply status is OK followed by information about the
 ID host_UID of the user that started the auction, the auction name
 auction_name and the name of the file asset_fname with information
 about the item being sold, the minimum bid value start_value, and the start
-date and time start_date-time of the auction in the format YYYY-MM-
-DD HH:MM:SS (19 bytes), as well as the duration of the auction timeactive
-in seconds (represented using 6 digits).\
-If this auction has received bids then a description of each bid is presented in a
+date and time start_date-time of the auction in the format YYYY-MM-DD
+HH:MM:SS (19 bytes), as well as the duration of the auction timeactive
+in seconds (represented using 6 digits).
+
+    If this auction has received bids then a description of each bid is presented in a
 separate line starting with B and including: the ID of the user that place this bid
 bidder_UID, the bid value bid_value, the bid date and time
 bid_date-time in the format YYYY-MM-DD HH:MM:SS (19 bytes), as
 well as the number of seconds elapsed since the beginning of the auction until
-the bid was made bid_sec_time (represented using 6 digits).\
-In case the auction is already closed there is one last line added to the reply
+the bid was made bid_sec_time (represented using 6 digits).
+
+    In case the auction is already closed there is one last line added to the reply
 including the date and time of the auction closing end_date-time in the
 format YYYY-MM-DD HH:MM:SS (19 bytes), as well as the number of
 seconds elapsed since the beginning of the auction until the bid was made
@@ -265,12 +268,12 @@ includes:
     - the file size `Fsize`, in bytes;
     - the contents of the selected file (`Fdata`).
 
-The file is locally stored using the filename Fname.\
-The User displays the name and size of the stored file.\
-If there is no file to be sent, or some other problem, the AS replies with
-status = NOK.\
-After receiving the reply message, the User closes the TCP connection with the
-AS.
+    The file is locally stored using the filename Fname.\
+    The User displays the name and size of the stored file.\
+    If there is no file to be sent, or some other problem, the AS replies with
+    status = NOK.\
+    After receiving the reply message, the User closes the TCP connection with the
+    AS.
 
 7. `BID UID password AID value`\
 Following the bid command the User application opens a TCP connection
