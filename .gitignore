@@ -30,3 +30,7 @@
 *.exe
 *.out
 *.app
+
+.vscode/
+auction_client
+auction_server
