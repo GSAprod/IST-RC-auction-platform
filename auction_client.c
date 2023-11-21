@@ -1,9 +1,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
 
 #define DEFAULT_SERVER_IP "localhost"
 #define DEFAULT_SERVER_PORT 58057   // 58000 + Group #57
+
+//! Não faço a menor ideia de como abstrair isto, mas por agora fica aqui como var global
+int fd;
+struct addrinfo *res;
 
 /***
  * Sets the server ip and port parameters with the arguments given
@@ -76,7 +86,37 @@ int promptToArgsList(char* prompt, char prompt_args[][128]) {
     return argCount;
 }
 
+int sendUDPRequest(char * request, char * response) {
+    int n;
+    struct sockaddr_in addr;
+    socklen_t addrlen;
+
+    n = strlen(request);
+
+    while (n > 0) {
+        n -= sendto(fd, request, n, 0, res->ai_addr, res->ai_addrlen);
+
+        if (n == -1) {
+            exit(1);
+        }
+    }
+
+    addrlen = sizeof(addr);
+
+    while (n = n=recvfrom(fd,response,128,0, (struct sockaddr*)&addr,&addrlen));
+
+    if(n==-1) /*error*/ exit(1);
+
+    return;
+}
+
 int main(int argc, char *argv[]) {
+    // UDP Connection
+    int errcode;
+    ssize_t n;
+    struct addrinfo hints;
+    char buffer[128];
+
     char server_ip[256];
     int server_port;
     char prompt[512];
@@ -85,6 +125,16 @@ int main(int argc, char *argv[]) {
 
     // Set the parameters of the server according to the program's arguments
     setServerParameters(argc, argv, server_ip, &server_port);
+
+    fd=socket(AF_INET,SOCK_DGRAM,0); //UDP socket
+    if(fd==-1) /*error*/exit(1);
+
+    memset(&hints,0,sizeof hints);
+    hints.ai_family=AF_INET; //IPv4
+    hints.ai_socktype=SOCK_DGRAM; //UDP socket
+
+    errcode=getaddrinfo(server_ip,server_port,&hints,&res);
+    if(errcode!=0) /*error*/ exit(1);
     
     //? Might need a while loop from here on
     printf("> ");
