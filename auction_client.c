@@ -12,6 +12,39 @@
 #define DEFAULT_SERVER_IP "localhost"
 #define DEFAULT_SERVER_PORT 58057   // 58000 + Group #57
 
+int logout(char* username, char* password) {
+    char buffer[128];
+    
+    sprintf(buffer, "LOU %s %s\n", username, password);
+    // Send the logout command to the server
+    udp_send(buffer);
+
+    // Receive the response from the server
+    udp_receive(buffer, sizeof buffer);
+
+    // Check if the response is correct
+    char * token = strtok(buffer, " ");
+
+    if (strcmp(token, "RLO")) {
+        printf("Error: Invalid response from server.\n");
+        return -1;
+    }
+    token = strtok(NULL, " ");
+
+    if (!strcmp(token, "OK")) {
+        printf("successful logout\n");
+        return 0;
+    } else if (!strcmp(token, "NOK")) {
+        printf("user not logged in\n");
+        return 1;
+    } else if (!strcmp(token, "UNR")) {
+        printf("unknown user\n");
+        return 1;
+    }
+
+    return -1;
+}
+
 /***
  * Splits the prompt into a list of prompt arguments (similarly to argv in
  * the main function)
