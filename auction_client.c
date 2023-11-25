@@ -111,12 +111,6 @@ int sendUDPRequest(char * request, char * response) {
 }
 
 int main(int argc, char *argv[]) {
-    // UDP Connection
-    int errcode;
-    ssize_t n;
-    struct addrinfo hints;
-    char buffer[128];
-
     char server_ip[256];
     int server_port;
     char prompt[512];
