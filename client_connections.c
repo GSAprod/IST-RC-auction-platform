@@ -92,7 +92,7 @@ int socket_setup() {
     tcp_hints.ai_family = AF_INET;      // IPv4
     tcp_hints.ai_socktype = SOCK_STREAM; // UDP socket
     
-    errcode = getaddrinfo("tejo.tecnico.ulisboa.pt", server_port, &tcp_hints, &tcp_info);
+    errcode = getaddrinfo(server_ip, server_port, &tcp_hints, &tcp_info);
     if (errcode != 0) return -1;
 
     return 0;
