@@ -9,9 +9,6 @@
 #include <netdb.h>
 #include "client_connections.h"
 
-#define DEFAULT_SERVER_IP "localhost"
-#define DEFAULT_SERVER_PORT 58057   // 58000 + Group #57
-
 /***
  * Splits the prompt into a list of prompt arguments (similarly to argv in
  * the main function)
