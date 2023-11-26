@@ -10,6 +10,9 @@
 #include <netdb.h>
 #include "client_connections.h"
 
+// User credentials (they can be used in many requests to the server)
+char userID[6], userPasswd[8];
+
 /***
  * Splits the prompt into a list of prompt arguments (similarly to argv in
  * the main function)
@@ -49,8 +52,8 @@ int promptToArgsList(char* prompt, char prompt_args[][128]) {
 */
 void clientLogin(int arg_count, char args[][128]) {
     int scanf_success;
-    int istId;
-    int passwdLen;
+    int istId, passwdLen, status;
+    char buffer[128], aux[10];
 
     // Argument verification
     if(arg_count != 3) {
@@ -79,8 +82,50 @@ void clientLogin(int arg_count, char args[][128]) {
         }
     }
 
-    //* Now connect to the server and send the credentials.
-    //* Receive the arguments and act accordingly
+    // Generate the string for sending the login request to the server, and
+    // send it using the UDP protocol
+    sprintf(buffer, "LIN %06d %s\n", istId, args[2]);
+    status = udp_send(buffer);
+    if (status == -1) {
+        printf("Login: failed to send request");
+        return;
+    }
+
+    // Check if the response type of the server is RLI
+    memset(buffer, 0, sizeof buffer);
+    status = udp_receive(buffer, sizeof buffer);
+    if (status == -1) {
+        printf("Login: failed to receive response from server.\n");
+        return;
+    }
+    strncpy(aux, buffer, 4);
+    if(strcmp(aux, "RLI ")) {
+        printf("Login: failed to receive response from server.\n");
+        return;
+    }
+    
+    // Check the status response sent by the server and inform the user
+    strncpy(aux, buffer+4, 4);
+    if (!strcmp(aux, "NOK\n")) {
+        printf("Invalid user credentials.\n");
+        return;
+    } else if (!strcmp(aux, "OK\n")) {
+        printf("User successfully logged in.\n");
+        
+    } else if (!strcmp(aux, "REG\n")) {
+        printf("No user with matching ID. Registered new user.\n");
+        
+    } else {
+        printf("Login: failed to receive response from server.\n");
+        return;
+    }
+
+    // If the function didn't return before, then the user is now successfully
+    // logged in. Let's store the credentials in order to send other requests
+    // that require authentication.
+    strcpy(userID, args[1]);
+    strcpy(userPasswd, args[2]);
+    return;
 }
 
 int main(int argc, char *argv[]) {
@@ -90,6 +135,7 @@ int main(int argc, char *argv[]) {
 
     // Set the parameters of the server according to the program's arguments
     setServerParameters(argc, argv);
+    socket_setup();
     
     //? Might need a while loop from here on
     printf("> ");
@@ -129,4 +175,5 @@ int main(int argc, char *argv[]) {
     }
 
     printf("finish\n");
+    socket_free();
 }

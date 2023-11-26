@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -Wextra
+CFLAGS=-Wall -Wextra -g
 
 all:
 	$(CC) $(CFLAGS) client_connections.c auction_client.c -o auction_client
