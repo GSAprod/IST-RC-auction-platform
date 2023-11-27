@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -12,14 +13,7 @@
 #include <errno.h>
 
 #define DEFAULT_SERVER_IP "localhost"
-#define DEFAULT_SERVER_PORT 58057   // 58000 + Group #57
-
-int udp_fd, tcp_fd;
-struct addrinfo *udp_info, *tcp_info; 
-
-char server_ip[256];
-int server_port;
-
+#define DEFAULT_SERVER_PORT "58057"   // 58000 + Group #57
 
 /***
  * Sets the server ip and port parameters with the arguments given

@@ -1,21 +1,11 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <errno.h>
-
-#define DEFAULT_SERVER_IP "localhost"
-#define DEFAULT_SERVER_PORT 58057   // 58000 + Group #57
+#include "client_connections.h"
 
 int udp_fd, tcp_fd;
 struct addrinfo *udp_info, *tcp_info; 
 
 char server_ip[256];
-int server_port;
+char server_port[16];
+
 
 /***
  * Sets the server ip and port parameters with the arguments given
@@ -29,10 +19,11 @@ int server_port;
  * @note The function forces program exiting if the arguments are invalid
 */
 void setServerParameters(int argc, char *argv[]) {
+    int port_int;
     int ip_used = 0, port_used = 0; // These variables control if a param is used twice
 
     strcpy(server_ip, DEFAULT_SERVER_IP);
-    server_port = DEFAULT_SERVER_PORT;
+    strcpy(server_port, DEFAULT_SERVER_PORT);
 
     // Check if there is a correct number of arguments
     if (argc % 2 == 0 || argc > 5) {
@@ -49,13 +40,15 @@ void setServerParameters(int argc, char *argv[]) {
             strcpy(server_ip, argv[i + 1]);
             ip_used = 1;
         } else if (!strcmp(argv[i], "-p")) { // Check for a port argument
-            server_port = atoi(argv[i + 1]);
+            port_int = atoi(argv[i + 1]);
 
             // If the port is invalid, throw an error
-            if(port_used == 1 || server_port <= 0 || server_port > 65535) {
+            if(port_used == 1 || port_int <= 0 || port_int > 65535) {
                 printf("Wrong arguments given.\n%s [-n ASIP] [-p ASport]\n", argv[0]);
                 exit(EXIT_FAILURE);
             }
+
+            strcpy(server_port, argv[i + 1]);
             port_used = 1;
         }
     }
