@@ -94,27 +94,27 @@ void clientLogin(int arg_count, char args[][128]) {
 
     // Argument verification
     if(arg_count != 3) {
-        printf("Login: Wrong arguments given.\nlogin UID password\n");
+        printf("Login: Wrong arguments given.\n\tSyntax: login UID password\n");
         return;
     }
 
     // Verify if the istID is a 6 digit number
     scanf_success = sscanf(args[1], "%d", &istId);
     if (scanf_success != 1 || strlen(args[1]) != 6) {
-        printf("Login: Wrong arguments given.\nlogin UID password\n");
+        printf("Login: Wrong arguments given.\n\tSyntax: login UID password\n");
         return;
     }
     
     // Verify if the student password is an 8 character alphanumeric string
     passwdLen = strlen(args[2]);
     if (passwdLen != 8) {
-        printf("Login: Wrong arguments given.\nlogin UID password\n");
+        printf("Login: Wrong arguments given.\n\tSyntax: login UID password\n");
         return;
     }
     for(int i = 0; i < passwdLen; i++) {
         char c = args[2][i];
         if (!isalpha(c) && !isdigit(c)) {
-            printf("Login: Wrong arguments given.\nlogin UID password\n");
+            printf("Login: Wrong arguments given.\n\tSyntax: login UID password\n");
             return;
         }
     }
@@ -165,9 +165,24 @@ void clientLogin(int arg_count, char args[][128]) {
     return;
 }
 
-int clientLogout() {
+/***
+ * Logs a user out of the 
+*/
+void clientUnregister(int arg_count) {
+    if (arg_count != 1) {
+        printf("Unregister: Wrong arguments given.\n\tSyntax: unregister\n");
+        return;
+    }
 
-    return 0;
+    // If the client hasn't logged in, the user credentials are not stored in
+    // the client app. Therefore, we don't even need to query the server because
+    // we have no credentials to even send the login request
+    if (!strcmp(userID, "") || !strcmp(userPasswd, "")) {
+        printf("User is not logged in.\n");
+        return;
+    }
+
+
 }
 
 int main(int argc, char *argv[]) {
@@ -178,6 +193,9 @@ int main(int argc, char *argv[]) {
     // Set the parameters of the server according to the program's arguments
     setServerParameters(argc, argv);
     socket_setup();
+
+    memset(userID, 0, sizeof userID);
+    memset(userPasswd, 0, sizeof userPasswd);
     
     //? Might need a while loop from here on
     while (1) {
