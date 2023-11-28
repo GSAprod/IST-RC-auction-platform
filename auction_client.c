@@ -165,11 +165,6 @@ void clientLogin(int arg_count, char args[][128]) {
     return;
 }
 
-int clientLogout() {
-
-    return 0;
-}
-
 int main(int argc, char *argv[]) {
     char prompt[512];
     char prompt_args[16][128];
