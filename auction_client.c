@@ -94,27 +94,27 @@ void clientLogin(int arg_count, char args[][128]) {
 
     // Argument verification
     if(arg_count != 3) {
-        printf("Login: Wrong arguments given.\nlogin UID password\n");
+        printf("Login: Wrong arguments given.\n\tSyntax: login UID password\n");
         return;
     }
 
     // Verify if the istID is a 6 digit number
     scanf_success = sscanf(args[1], "%d", &istId);
     if (scanf_success != 1 || strlen(args[1]) != 6) {
-        printf("Login: Wrong arguments given.\nlogin UID password\n");
+        printf("Login: Wrong arguments given.\n\tSyntax: login UID password\n");
         return;
     }
     
     // Verify if the student password is an 8 character alphanumeric string
     passwdLen = strlen(args[2]);
     if (passwdLen != 8) {
-        printf("Login: Wrong arguments given.\nlogin UID password\n");
+        printf("Login: Wrong arguments given.\n\tSyntax: login UID password\n");
         return;
     }
     for(int i = 0; i < passwdLen; i++) {
         char c = args[2][i];
         if (!isalpha(c) && !isdigit(c)) {
-            printf("Login: Wrong arguments given.\nlogin UID password\n");
+            printf("Login: Wrong arguments given.\n\tSyntax: login UID password\n");
             return;
         }
     }
@@ -165,6 +165,74 @@ void clientLogin(int arg_count, char args[][128]) {
     return;
 }
 
+/***
+ * Logs out and unregisters a user from the database.
+ * The user credentials are stored the global variables called userId and userPasswd. 
+ * 
+ * @param arg_count The number of arguments of the prompt
+*/
+void clientUnregister(int arg_count) {
+    char buffer[128], aux[16];
+    int status;
+
+    if (arg_count != 1) {
+        printf("Unregister: Wrong arguments given.\n\tSyntax: unregister\n");
+        return;
+    }
+
+    // If the client hasn't logged in, the user credentials are not stored in
+    // the client app. Therefore, we don't even need to query the server because
+    // we have no credentials to even send the login request
+    if (!strcmp(userID, "") || !strcmp(userPasswd, "")) {
+        printf("User is not logged in.\n");
+        return;
+    }
+
+    // Generate the string for sending the unregister request to the server, 
+    // and send it using the UDP protocol
+    sprintf(buffer, "UNR %s %s\n", userID, userPasswd);
+    status = udp_send(buffer);
+    if (status == -1) {
+        printf("Unregister: failed to send request");
+        return;
+    }
+
+    // Check if the response type of the server is RUR
+    memset(buffer, 0, sizeof buffer);
+    status = udp_receive(buffer, sizeof buffer);
+    if (status == -1) {
+        printf("Unregister: failed to receive response from server.\n");
+        return;
+    }
+    strncpy(aux, buffer, 4);
+    if(strcmp(aux, "RUR ")) {
+        printf("Login: failed to receive response from server.\n");
+        return;
+    }
+
+    // Check the status response sent by the server and inform the user
+    strncpy(aux, buffer+4, 4);
+    if (!strcmp(aux, "NOK\n")) {
+        printf("User is not logged in.\n");
+
+    } else if (!strcmp(aux, "OK\n")) {
+        printf("User successfully unregistered.\n");
+        
+    } else if (!strcmp(aux, "UNR\n")) {
+        printf("User not registered.\n");
+        
+    } else {
+        printf("Unregister: failed to receive response from server.\n");
+        return;
+    }
+
+    // If the function didn't return before, then the user is now successfully
+    // unregistered/logged out. Let's wipe the credentials from our client as
+    // they are not required anymore.
+    memset(userID, 0, sizeof userID);
+    memset(userPasswd, 0, sizeof userPasswd);
+}
+
 int main(int argc, char *argv[]) {
     char prompt[512];
     char prompt_args[16][128];
@@ -173,8 +241,10 @@ int main(int argc, char *argv[]) {
     // Set the parameters of the server according to the program's arguments
     setServerParameters(argc, argv);
     socket_setup();
+
+    memset(userID, 0, sizeof userID);
+    memset(userPasswd, 0, sizeof userPasswd);
     
-    //? Might need a while loop from here on
     while (1) {
         printf("> ");
         fgets(prompt, sizeof prompt, stdin);
@@ -189,7 +259,7 @@ int main(int argc, char *argv[]) {
         } else if (!strcmp(prompt_args[0], "logout")) {
             userLogout();
         } else if (!strcmp(prompt_args[0], "unregister")) {
-            // TODO Unregister function
+            clientUnregister(prompt_args_count);
         } else if (!strcmp(prompt_args[0], "exit")) {
             // TODO Exit function
         } else if (!strcmp(prompt_args[0], "open")) {
