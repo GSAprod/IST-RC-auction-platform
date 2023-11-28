@@ -38,16 +38,20 @@ void userLogout() {
         printf("Error: Invalid response from server.\n");
         return;
     }
-    token = strtok(NULL, " ");
 
-    if (!strcmp(token, "OK")) {
+    token = token + 4;
+
+    if (!strcmp(token, "OK\n")) {
         printf("successful logout\n");
-    } else if (!strcmp(token, "NOK")) {
+            
+        // Clear the user credentials
+        memset(userPasswd, 0, sizeof userPasswd);
+        memset(userID, 0, sizeof userID);
+    } else if (!strcmp(token, "NOK\n")) {
         printf("user not logged in\n");
-    } else if (!strcmp(token, "UNR")) {
+    } else if (!strcmp(token, "UNR\n")) {
         printf("unknown user\n");
     }
-
 }
 
 /***
@@ -165,6 +169,17 @@ void clientLogin(int arg_count, char args[][128]) {
     return;
 }
 
+int exitScript() {
+    if (strcmp(userID, "") || strcmp(userPasswd, "")) {
+        printf("User not logged out\n");
+        return 0;
+    }
+    else {
+        printf("Exiting...\n");
+        return 1;
+    }
+}
+
 int main(int argc, char *argv[]) {
     char prompt[512];
     char prompt_args[16][128];
@@ -191,7 +206,9 @@ int main(int argc, char *argv[]) {
         } else if (!strcmp(prompt_args[0], "unregister")) {
             // TODO Unregister function
         } else if (!strcmp(prompt_args[0], "exit")) {
-            // TODO Exit function
+            if (exitScript()) {
+                break;
+            }
         } else if (!strcmp(prompt_args[0], "open")) {
             // TODO Open function
         } else if (!strcmp(prompt_args[0], "close")) {
