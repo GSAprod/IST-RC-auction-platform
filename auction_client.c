@@ -13,37 +13,43 @@
 // User credentials (they can be used in many requests to the server)
 char userID[6], userPasswd[8];
 
-int logout(char* username, char* password) {
+void userLogout() {
     char buffer[128];
+
+    // Check if the user is logged in
+    if (!strcmp(userID, "") || !strcmp(userPasswd, "")) {
+        printf("user not logged in\n");
+        return;
+    }
     
-    sprintf(buffer, "LOU %s %s\n", username, password);
+    sprintf(buffer, "LOU %s %s\n", userID, userPasswd);
     // Send the logout command to the server
     udp_send(buffer);
 
+    memset(buffer, 0, sizeof buffer);
+
     // Receive the response from the server
     udp_receive(buffer, sizeof buffer);
+
+    printf("buffer: %s\n", buffer);
 
     // Check if the response is correct
     char * token = strtok(buffer, " ");
 
     if (strcmp(token, "RLO")) {
         printf("Error: Invalid response from server.\n");
-        return -1;
+        return;
     }
     token = strtok(NULL, " ");
 
     if (!strcmp(token, "OK")) {
         printf("successful logout\n");
-        return 0;
     } else if (!strcmp(token, "NOK")) {
         printf("user not logged in\n");
-        return 1;
     } else if (!strcmp(token, "UNR")) {
         printf("unknown user\n");
-        return 1;
     }
 
-    return -1;
 }
 
 /***
@@ -162,6 +168,7 @@ void clientLogin(int arg_count, char args[][128]) {
 }
 
 int clientLogout() {
+
     return 0;
 }
 
@@ -175,42 +182,45 @@ int main(int argc, char *argv[]) {
     socket_setup();
     
     //? Might need a while loop from here on
-    printf("> ");
-    fgets(prompt, sizeof prompt, stdin);
-    prompt_args_count = promptToArgsList(prompt, prompt_args);
+    while (1) {
+        printf("> ");
+        fgets(prompt, sizeof prompt, stdin);
+        prompt_args_count = promptToArgsList(prompt, prompt_args);
 
-    //? From here on, we should issue the routines for each operation.
-    //? We can define these routines like this: void login(int arg_count, char args[][128])
-    //? Do not forget to check if the arguments (and count) are correct
-    //! This if chain supposedly works, but it hasn't been tested (the rest was)
-    if(!strcmp(prompt_args[0], "login")) {
-        clientLogin(prompt_args_count, prompt_args);
-    } else if (!strcmp(prompt_args[0], "logout")) {
-        // TODO Logout function
-    } else if (!strcmp(prompt_args[0], "unregister")) {
-        // TODO Unregister function
-    } else if (!strcmp(prompt_args[0], "exit")) {
-        // TODO Exit function
-    } else if (!strcmp(prompt_args[0], "open")) {
-        // TODO Open function
-    } else if (!strcmp(prompt_args[0], "close")) {
-        // TODO Close function
-    } else if (!strcmp(prompt_args[0], "myauctions") || !strcmp(prompt_args[0], "ma")) {
-        // TODO My_auctions function
-    } else if (!strcmp(prompt_args[0], "mybids") || !strcmp(prompt_args[0], "mb")) {
-        // TODO My_bids function
-    } else if (!strcmp(prompt_args[0], "list") || !strcmp(prompt_args[0], "l")) {
-        // TODO List function
-    } else if (!strcmp(prompt_args[0], "show_asset") || !strcmp(prompt_args[0], "sa")) {
-        // TODO Show_asset function
-    } else if (!strcmp(prompt_args[0], "bid") || !strcmp(prompt_args[0], "b")) {
-        // TODO My_auctions function
-    } else if (!strcmp(prompt_args[0], "show_record") || !strcmp(prompt_args[0], "sr")) {
-        // TODO My_auctions function
-    } else {
-        printf("Command not found.\n");
+        //? From here on, we should issue the routines for each operation.
+        //? We can define these routines like this: void login(int arg_count, char args[][128])
+        //? Do not forget to check if the arguments (and count) are correct
+        //! This if chain supposedly works, but it hasn't been tested (the rest was)
+        if(!strcmp(prompt_args[0], "login")) {
+            clientLogin(prompt_args_count, prompt_args);
+        } else if (!strcmp(prompt_args[0], "logout")) {
+            userLogout();
+        } else if (!strcmp(prompt_args[0], "unregister")) {
+            // TODO Unregister function
+        } else if (!strcmp(prompt_args[0], "exit")) {
+            // TODO Exit function
+        } else if (!strcmp(prompt_args[0], "open")) {
+            // TODO Open function
+        } else if (!strcmp(prompt_args[0], "close")) {
+            // TODO Close function
+        } else if (!strcmp(prompt_args[0], "myauctions") || !strcmp(prompt_args[0], "ma")) {
+            // TODO My_auctions function
+        } else if (!strcmp(prompt_args[0], "mybids") || !strcmp(prompt_args[0], "mb")) {
+            // TODO My_bids function
+        } else if (!strcmp(prompt_args[0], "list") || !strcmp(prompt_args[0], "l")) {
+            // TODO List function
+        } else if (!strcmp(prompt_args[0], "show_asset") || !strcmp(prompt_args[0], "sa")) {
+            // TODO Show_asset function
+        } else if (!strcmp(prompt_args[0], "bid") || !strcmp(prompt_args[0], "b")) {
+            // TODO My_auctions function
+        } else if (!strcmp(prompt_args[0], "show_record") || !strcmp(prompt_args[0], "sr")) {
+            // TODO My_auctions function
+        } else {
+            printf("Command not found.\n");
+        }
+
     }
-
-    printf("finish\n");
-    socket_free();
+        printf("finish\n");
+        socket_free();
 }
+
