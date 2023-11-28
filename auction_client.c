@@ -31,8 +31,6 @@ void userLogout() {
     // Receive the response from the server
     udp_receive(buffer, sizeof buffer);
 
-    printf("buffer: %s\n", buffer);
-
     // Check if the response is correct
     char * token = strtok(buffer, " ");
 
