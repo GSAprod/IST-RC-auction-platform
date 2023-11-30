@@ -35,19 +35,28 @@ void userLogout() {
     char * token = strtok(buffer, " ");
 
     if (strcmp(token, "RLO")) {
-        printf("Error: Invalid response from server.\n");
+        printf("Logout: Invalid response from server.\n");
         return;
     }
     token = strtok(NULL, " ");
 
-    if (!strcmp(token, "OK")) {
+    if (!strcmp(token, "OK\n")) {
         printf("successful logout\n");
-    } else if (!strcmp(token, "NOK")) {
+    } else if (!strcmp(token, "NOK\n")) {
         printf("user not logged in\n");
-    } else if (!strcmp(token, "UNR")) {
+    } else if (!strcmp(token, "UNR\n")) {
         printf("unknown user\n");
+        return;
+    } else {
+        printf("Logout: Invalid response from server.\n");
+        return;
     }
 
+    // If the function didn't return before, then the user is now successfully
+    // unregistered/logged out. Let's wipe the credentials from our client as
+    // they are not required anymore.
+    memset(userID, 0, sizeof userID);
+    memset(userPasswd, 0, sizeof userPasswd);
 }
 
 /***
@@ -130,6 +139,7 @@ void clientLogin(int arg_count, char args[][128]) {
 
     // Check if the response type of the server is RLI
     memset(buffer, 0, sizeof buffer);
+    memset(aux, 0, sizeof aux);
     status = udp_receive(buffer, sizeof buffer);
     if (status == -1) {
         printf("Login: failed to receive response from server.\n");
