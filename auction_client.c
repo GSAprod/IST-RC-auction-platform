@@ -103,27 +103,27 @@ void clientLogin(int arg_count, char args[][128]) {
 
     // Argument verification
     if(arg_count != 3) {
-        printf("Login: Wrong arguments given.\n\tSyntax: login UID password\n");
+        printf("Login: Wrong arguments given.\n\tlogin UID password\n");
         return;
     }
 
     // Verify if the istID is a 6 digit number
     scanf_success = sscanf(args[1], "%d", &istId);
     if (scanf_success != 1 || strlen(args[1]) != 6) {
-        printf("Login: Wrong arguments given.\n\tSyntax: login UID password\n");
+        printf("Login: Wrong arguments given.\n\tlogin UID password\n");
         return;
     }
     
     // Verify if the student password is an 8 character alphanumeric string
     passwdLen = strlen(args[2]);
     if (passwdLen != 8) {
-        printf("Login: Wrong arguments given.\n\tSyntax: login UID password\n");
+        printf("Login: Wrong arguments given.\n\tlogin UID password\n");
         return;
     }
     for(int i = 0; i < passwdLen; i++) {
         char c = args[2][i];
         if (!isalpha(c) && !isdigit(c)) {
-            printf("Login: Wrong arguments given.\n\tSyntax: login UID password\n");
+            printf("Login: Wrong arguments given.\n\tlogin UID password\n");
             return;
         }
     }
@@ -186,7 +186,7 @@ void clientUnregister(int arg_count) {
     int status;
 
     if (arg_count != 1) {
-        printf("Unregister: Wrong arguments given.\n\tSyntax: unregister\n");
+        printf("Unregister: Wrong arguments given.\n\tunregister\n");
         return;
     }
 
@@ -243,6 +243,65 @@ void clientUnregister(int arg_count) {
     memset(userPasswd, 0, sizeof userPasswd);
 }
 
+/***
+ * Lists all auctions of the server and their respective status.
+ * 
+ * @param arg_count The number of arguments of the prompt
+ */
+void listAuctions(int arg_count) {
+    char buffer[8192], aux[16];
+    int status, auction_number, auction_status; //! to be used later
+
+    if (arg_count != 1) {
+        printf("List all auctions: Wrong arguments given.\n\tlist\n\tl\n");
+        return;
+    }
+
+    // Generate the string for sending the auction listing request to the server, 
+    // and send it using the UDP protocol
+    sprintf(buffer, "LST\n");
+    status = udp_send(buffer);
+    if (status == -1) {
+        printf("List all auctions: failed to send request");
+        return;
+    }
+
+    // Check if the response type of the server is RLS
+    memset(buffer, 0, sizeof buffer);
+    memset(aux, 0, sizeof aux);
+    status = udp_receive(buffer, sizeof buffer);
+    if (status == -1) {
+        printf("List all auctions: failed to receive response from server.\n");
+        return;
+    }
+    strncpy(aux, buffer, 4);
+    if (strcmp(aux, "RLS ")) {
+        printf("List all auctions: failed to receive response from server.\n");
+        return;
+    }
+
+    memset(aux, 0, sizeof aux);
+    strncpy(aux, buffer+4, 3);
+    if (!strcmp(aux, "NOK")) {
+        printf("No auctions have yet been started.\n");
+        return;
+    } else if (!strcmp(aux, "OK ")) {
+        printf("%s\n", buffer);
+
+        //for(int i=0; i < 1000; i++) { //! Needs to be changed so
+            // TODO For every auction item, verify if the syntax is correct,
+            // TODO if so, get the auction number and its status, and show the
+            // TODO result on screen.
+            // TODO Have some way of stopping this loop when there are no more
+            // TODO characters to read.
+        //}
+        
+    } else {
+        printf("List all auctions: failed to receive response from server.\n");
+        return;
+    }
+}
+
 int main(int argc, char *argv[]) {
     char prompt[512];
     char prompt_args[16][128];
@@ -281,7 +340,7 @@ int main(int argc, char *argv[]) {
         } else if (!strcmp(prompt_args[0], "mybids") || !strcmp(prompt_args[0], "mb")) {
             // TODO My_bids function
         } else if (!strcmp(prompt_args[0], "list") || !strcmp(prompt_args[0], "l")) {
-            // TODO List function
+            listAuctions(prompt_args_count);
         } else if (!strcmp(prompt_args[0], "show_asset") || !strcmp(prompt_args[0], "sa")) {
             // TODO Show_asset function
         } else if (!strcmp(prompt_args[0], "bid") || !strcmp(prompt_args[0], "b")) {
