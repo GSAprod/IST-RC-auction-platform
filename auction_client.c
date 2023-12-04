@@ -35,19 +35,28 @@ void userLogout() {
     char * token = strtok(buffer, " ");
 
     if (strcmp(token, "RLO")) {
-        printf("Error: Invalid response from server.\n");
+        printf("Logout: Invalid response from server.\n");
         return;
     }
     token = strtok(NULL, " ");
 
-    if (!strcmp(token, "OK")) {
+    if (!strcmp(token, "OK\n")) {
         printf("successful logout\n");
-    } else if (!strcmp(token, "NOK")) {
+    } else if (!strcmp(token, "NOK\n")) {
         printf("user not logged in\n");
-    } else if (!strcmp(token, "UNR")) {
+    } else if (!strcmp(token, "UNR\n")) {
         printf("unknown user\n");
+        return;
+    } else {
+        printf("Logout: Invalid response from server.\n");
+        return;
     }
 
+    // If the function didn't return before, then the user is now successfully
+    // unregistered/logged out. Let's wipe the credentials from our client as
+    // they are not required anymore.
+    memset(userID, 0, sizeof userID);
+    memset(userPasswd, 0, sizeof userPasswd);
 }
 
 /***
@@ -94,27 +103,27 @@ void clientLogin(int arg_count, char args[][128]) {
 
     // Argument verification
     if(arg_count != 3) {
-        printf("Login: Wrong arguments given.\n\tSyntax: login UID password\n");
+        printf("Login: Wrong arguments given.\n\tlogin UID password\n");
         return;
     }
 
     // Verify if the istID is a 6 digit number
     scanf_success = sscanf(args[1], "%d", &istId);
     if (scanf_success != 1 || strlen(args[1]) != 6) {
-        printf("Login: Wrong arguments given.\n\tSyntax: login UID password\n");
+        printf("Login: Wrong arguments given.\n\tlogin UID password\n");
         return;
     }
     
     // Verify if the student password is an 8 character alphanumeric string
     passwdLen = strlen(args[2]);
     if (passwdLen != 8) {
-        printf("Login: Wrong arguments given.\n\tSyntax: login UID password\n");
+        printf("Login: Wrong arguments given.\n\tlogin UID password\n");
         return;
     }
     for(int i = 0; i < passwdLen; i++) {
         char c = args[2][i];
         if (!isalpha(c) && !isdigit(c)) {
-            printf("Login: Wrong arguments given.\n\tSyntax: login UID password\n");
+            printf("Login: Wrong arguments given.\n\tlogin UID password\n");
             return;
         }
     }
@@ -130,6 +139,7 @@ void clientLogin(int arg_count, char args[][128]) {
 
     // Check if the response type of the server is RLI
     memset(buffer, 0, sizeof buffer);
+    memset(aux, 0, sizeof aux);
     status = udp_receive(buffer, sizeof buffer);
     if (status == -1) {
         printf("Login: failed to receive response from server.\n");
@@ -176,7 +186,7 @@ void clientUnregister(int arg_count) {
     int status;
 
     if (arg_count != 1) {
-        printf("Unregister: Wrong arguments given.\n\tSyntax: unregister\n");
+        printf("Unregister: Wrong arguments given.\n\tunregister\n");
         return;
     }
 
@@ -233,6 +243,116 @@ void clientUnregister(int arg_count) {
     memset(userPasswd, 0, sizeof userPasswd);
 }
 
+/***
+ * Prints a list of auctions based on a string formatted like the following:
+ * AID state[ AID state]*\\n
+ * 
+ * @param auctionListStr The string with the list of auctions
+ * @return 0 if the entire list could be printed;
+ * -1 if the string is invalid;
+ * -2 if there are no auctions.
+*/
+int printAuctions(char* auctionListStr) {
+    char *token;
+    int status, auction_num, status_num, has_entries;
+
+    // Print the list of auctions
+    token = strtok(auctionListStr, " ");
+    while (token != NULL) {
+        // Check if the next substring is a 3-digit auction number 
+        status = sscanf(token, "%03d", &auction_num);
+        if (status == EOF) {
+            return -1;
+        }
+
+        // Get the next substring and check if it's the status number.
+        token = strtok(NULL, " ");
+        if(token == NULL) {
+            return -1;
+        }
+        status = sscanf(token, "%01d", &status_num);
+        if (status == EOF) {
+            return -1;
+        }
+
+        // Print the table's header, if it hasn't been printed before
+        if(!has_entries) {
+            has_entries = 1;
+            printf("AUCTION\tSTATUS\n");
+        } 
+
+        // Print the auction using the auction_num and status_num
+        printf("%03d\t%s\n", auction_num, status_num == 1 ? "active" : "not active");
+
+        token = strtok(NULL, " ");
+    }
+
+    // If no auctions have been started, show the message to the user
+    if (!has_entries) {
+        return -2;
+    }
+
+    return 0;
+}
+
+/***
+ * Lists all auctions of the server and their respective status.
+ * 
+ * @param arg_count The number of arguments of the prompt
+ */
+void listAllAuctions(int arg_count) {
+    char buffer[8192], aux[16];
+    int status;
+
+    if (arg_count != 1) {
+        printf("List all auctions: Wrong arguments given.\n\tlist\n\tl\n");
+        return;
+    }
+
+    // Generate the string for sending the auction listing request to the server, 
+    // and send it using the UDP protocol
+    sprintf(buffer, "LST\n");
+    status = udp_send(buffer);
+    if (status == -1) {
+        printf("List all auctions: failed to send request");
+        return;
+    }
+
+    // Check if the response type of the server is RLS
+    memset(buffer, 0, sizeof buffer);
+    memset(aux, 0, sizeof aux);
+    status = udp_receive(buffer, sizeof buffer);
+    if (status == -1) {
+        printf("List all auctions: failed to receive response from server.\n");
+        return;
+    }
+    strncpy(aux, buffer, 4);
+    if (strcmp(aux, "RLS ")) {
+        printf("List all auctions: failed to receive response from server.\n");
+        return;
+    }
+
+    memset(aux, 0, sizeof aux);
+    strncpy(aux, buffer+4, 3);
+    if (!strcmp(aux, "NOK")) {
+        printf("No auctions have yet been started.\n");
+        return;
+    } else if (!strcmp(aux, "OK ")) {
+        // Print a table with all auctions and their respective status
+        status = printAuctions(buffer + 7);
+        if (status == -1) {
+            printf("List all auctions: Invalid response from server.\n");
+        } else if (status == -2) {
+            printf("No auctions have yet been started.\n");
+        }
+    } else {
+        // If a different status (other than OK and NOK) is sent by the server,
+        // send an error
+        printf("List all auctions: failed to receive response from server.\n");
+        return;
+    }
+}
+
 int main(int argc, char *argv[]) {
     char prompt[512];
     char prompt_args[16][128];
@@ -271,7 +391,7 @@ int main(int argc, char *argv[]) {
         } else if (!strcmp(prompt_args[0], "mybids") || !strcmp(prompt_args[0], "mb")) {
             // TODO My_bids function
         } else if (!strcmp(prompt_args[0], "list") || !strcmp(prompt_args[0], "l")) {
-            // TODO List function
+            listAllAuctions(prompt_args_count);
         } else if (!strcmp(prompt_args[0], "show_asset") || !strcmp(prompt_args[0], "sa")) {
             // TODO Show_asset function
         } else if (!strcmp(prompt_args[0], "bid") || !strcmp(prompt_args[0], "b")) {
