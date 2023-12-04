@@ -250,7 +250,8 @@ void clientUnregister(int arg_count) {
  */
 void listAuctions(int arg_count) {
     char buffer[8192], aux[16];
-    int status, auction_number, auction_status; //! to be used later
+    char *token;
+    int status, auction_num, status_num, has_entries = 0; //! to be used later
 
     if (arg_count != 1) {
         printf("List all auctions: Wrong arguments given.\n\tlist\n\tl\n");
@@ -286,17 +287,47 @@ void listAuctions(int arg_count) {
         printf("No auctions have yet been started.\n");
         return;
     } else if (!strcmp(aux, "OK ")) {
-        printf("%s\n", buffer);
+        // Print the list of auctions
+        token = strtok(buffer + 7, " ");
+        while (token != NULL) {
+            // Check if the next substring is a 3-digit auction number 
+            status = sscanf(token, "%03d", &auction_num);
+            if (status == EOF) {
+                printf("List all auctions: Invalid response from server.\n");
+                return;
+            }
 
-        //for(int i=0; i < 1000; i++) { //! Needs to be changed so
-            // TODO For every auction item, verify if the syntax is correct,
-            // TODO if so, get the auction number and its status, and show the
-            // TODO result on screen.
-            // TODO Have some way of stopping this loop when there are no more
-            // TODO characters to read.
-        //}
-        
+            // Get the next substring and check if it's the status number.
+            token = strtok(NULL, " ");
+            if(token == NULL) {
+                printf("List all auctions: Invalid response from server.\n");
+                return;
+            }
+            status = sscanf(token, "%01d", &status_num);
+            if (status == EOF) {
+                printf("List all auctions: Invalid response from server.\n");
+                return;
+            }
+
+            // Print the table's header, if it hasn't been printed before
+            if(!has_entries) {
+                has_entries = 1;
+                printf("AUCTION\tSTATUS\n");
+            } 
+
+            // Print the auction using the auction_num and status_num
+            printf("%03d\t%s\n", auction_num, status_num == 1 ? "active" : "not active");
+
+            token = strtok(NULL, " ");
+        }
+
+        // If no auctions have been started, show the message to the user
+        if (!has_entries) {
+            printf("No auctions have yet been started.\n");
+        }
     } else {
+        // If a different status (other than OK and NOK) is sent by the server,
+        // send an error
         printf("List all auctions: failed to receive response from server.\n");
         return;
     }
