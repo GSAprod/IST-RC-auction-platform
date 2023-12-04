@@ -244,14 +244,65 @@ void clientUnregister(int arg_count) {
 }
 
 /***
+ * Prints a list of auctions based on a string formatted like the following:
+ * AID state[ AID state]*\\n
+ * 
+ * @param auctionListStr The string with the list of auctions
+ * @return 0 if the entire list could be printed;
+ * -1 if the string is invalid;
+ * -2 if there are no auctions.
+*/
+int printAuctions(char* auctionListStr) {
+    char *token;
+    int status, auction_num, status_num, has_entries;
+
+    // Print the list of auctions
+    token = strtok(auctionListStr, " ");
+    while (token != NULL) {
+        // Check if the next substring is a 3-digit auction number 
+        status = sscanf(token, "%03d", &auction_num);
+        if (status == EOF) {
+            return -1;
+        }
+
+        // Get the next substring and check if it's the status number.
+        token = strtok(NULL, " ");
+        if(token == NULL) {
+            return -1;
+        }
+        status = sscanf(token, "%01d", &status_num);
+        if (status == EOF) {
+            return -1;
+        }
+
+        // Print the table's header, if it hasn't been printed before
+        if(!has_entries) {
+            has_entries = 1;
+            printf("AUCTION\tSTATUS\n");
+        } 
+
+        // Print the auction using the auction_num and status_num
+        printf("%03d\t%s\n", auction_num, status_num == 1 ? "active" : "not active");
+
+        token = strtok(NULL, " ");
+    }
+
+    // If no auctions have been started, show the message to the user
+    if (!has_entries) {
+        return -2;
+    }
+
+    return 0;
+}
+
+/***
  * Lists all auctions of the server and their respective status.
  * 
  * @param arg_count The number of arguments of the prompt
  */
-void listAuctions(int arg_count) {
+void listAllAuctions(int arg_count) {
     char buffer[8192], aux[16];
-    char *token;
-    int status, auction_num, status_num, has_entries = 0;
+    int status;
 
     if (arg_count != 1) {
         printf("List all auctions: Wrong arguments given.\n\tlist\n\tl\n");
@@ -287,42 +338,11 @@ void listAuctions(int arg_count) {
         printf("No auctions have yet been started.\n");
         return;
     } else if (!strcmp(aux, "OK ")) {
-        // Print the list of auctions
-        token = strtok(buffer + 7, " ");
-        while (token != NULL) {
-            // Check if the next substring is a 3-digit auction number 
-            status = sscanf(token, "%03d", &auction_num);
-            if (status == EOF) {
-                printf("List all auctions: Invalid response from server.\n");
-                return;
-            }
-
-            // Get the next substring and check if it's the status number.
-            token = strtok(NULL, " ");
-            if(token == NULL) {
-                printf("List all auctions: Invalid response from server.\n");
-                return;
-            }
-            status = sscanf(token, "%01d", &status_num);
-            if (status == EOF) {
-                printf("List all auctions: Invalid response from server.\n");
-                return;
-            }
-
-            // Print the table's header, if it hasn't been printed before
-            if(!has_entries) {
-                has_entries = 1;
-                printf("AUCTION\tSTATUS\n");
-            } 
-
-            // Print the auction using the auction_num and status_num
-            printf("%03d\t%s\n", auction_num, status_num == 1 ? "active" : "not active");
-
-            token = strtok(NULL, " ");
-        }
-
-        // If no auctions have been started, show the message to the user
-        if (!has_entries) {
+        // Print a table with all auctions and their respective status
+        status = printAuctions(buffer + 7);
+        if (status == -1) {
+            printf("List all auctions: Invalid response from server.\n");
+        } else if (status == -2) {
             printf("No auctions have yet been started.\n");
         }
     } else {
@@ -371,7 +391,7 @@ int main(int argc, char *argv[]) {
         } else if (!strcmp(prompt_args[0], "mybids") || !strcmp(prompt_args[0], "mb")) {
             // TODO My_bids function
         } else if (!strcmp(prompt_args[0], "list") || !strcmp(prompt_args[0], "l")) {
-            listAuctions(prompt_args_count);
+            listAllAuctions(prompt_args_count);
         } else if (!strcmp(prompt_args[0], "show_asset") || !strcmp(prompt_args[0], "sa")) {
             // TODO Show_asset function
         } else if (!strcmp(prompt_args[0], "bid") || !strcmp(prompt_args[0], "b")) {
