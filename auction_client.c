@@ -251,7 +251,7 @@ void clientUnregister(int arg_count) {
 void listAuctions(int arg_count) {
     char buffer[8192], aux[16];
     char *token;
-    int status, auction_num, status_num, has_entries = 0; //! to be used later
+    int status, auction_num, status_num, has_entries = 0;
 
     if (arg_count != 1) {
         printf("List all auctions: Wrong arguments given.\n\tlist\n\tl\n");
