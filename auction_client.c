@@ -10,6 +10,8 @@
 #include <netdb.h>
 #include "client_connections.h"
 
+// soulindo -> Password
+
 // User credentials (they can be used in many requests to the server)
 char userID[6], userPasswd[8];
 
@@ -38,13 +40,14 @@ void userLogout() {
         printf("Logout: Invalid response from server.\n");
         return;
     }
-    token = strtok(NULL, " ");
 
-    if (!strcmp(token, "OK\n")) {
+    if (!strcmp(buffer + 4, "OK\n")) {
         printf("successful logout\n");
-    } else if (!strcmp(token, "NOK\n")) {
+            
+        // Clear the user credentials
+    } else if (!strcmp(buffer + 4, "NOK\n")) {
         printf("user not logged in\n");
-    } else if (!strcmp(token, "UNR\n")) {
+    } else if (!strcmp(buffer + 4, "UNR\n")) {
         printf("unknown user\n");
         return;
     } else {
@@ -173,6 +176,17 @@ void clientLogin(int arg_count, char args[][128]) {
     strcpy(userID, args[1]);
     strcpy(userPasswd, args[2]);
     return;
+}
+
+int exitScript() {
+    if (strcmp(userID, "") || strcmp(userPasswd, "")) {
+        printf("User not logged out\n");
+        return 0;
+    }
+    else {
+        printf("Exiting...\n");
+        return 1;
+    }
 }
 
 /***
@@ -381,7 +395,9 @@ int main(int argc, char *argv[]) {
         } else if (!strcmp(prompt_args[0], "unregister")) {
             clientUnregister(prompt_args_count);
         } else if (!strcmp(prompt_args[0], "exit")) {
-            // TODO Exit function
+            if (exitScript()) {
+                break;
+            }
         } else if (!strcmp(prompt_args[0], "open")) {
             // TODO Open function
         } else if (!strcmp(prompt_args[0], "close")) {
