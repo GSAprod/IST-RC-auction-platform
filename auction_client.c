@@ -49,7 +49,6 @@ void userLogout() {
         printf("user not logged in\n");
     } else if (!strcmp(buffer + 4, "UNR\n")) {
         printf("unknown user\n");
-        return;
     } else {
         printf("Logout: Invalid response from server.\n");
         return;
