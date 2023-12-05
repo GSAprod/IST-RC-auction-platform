@@ -434,6 +434,73 @@ void listMyAuctions(int arg_count) {
     }
 }
 
+
+/***
+ * Lists all auctions that the logged in user (with login credentials in the
+ * global variables userId and userPasswd) has created.
+ * 
+ * @param arg_count The number of arguments of the prompt
+ */
+void myBids(int arg_count) {
+    char buffer[8192];
+
+    if (arg_count != 1) {
+        printf("List my bids: Wrong arguments given.\n\t> mybids\n\t> mb\n");
+        return;
+    }
+
+    if (!strcmp(userID, "")) {
+        printf("No user is logged in.\n");
+        return;
+    }
+
+    sprintf(buffer, "LMB %s\n", userID);
+    
+    udp_send(buffer);
+
+    memset(buffer, 0, sizeof buffer);
+
+    int status = udp_receive(buffer, sizeof buffer);
+
+    if (status == -1) {
+        printf("My bids: failed to receive response from server.\n");
+        return;
+    }
+
+    char aux[4];
+    memset(aux, 0, sizeof aux);
+
+    strncpy(aux, buffer, 3);
+
+    if (strcmp(aux, "RMB")) {
+        printf("My bids: Invalid response from server.\n");
+        return;
+    }
+
+    memset(aux, 0, sizeof aux);
+    strncpy(aux, buffer + 4, 3);
+
+    if (!strcmp(aux, "NOK")) {
+        printf("User has no ongoing bids.\n");
+        return;
+    } else if (!strcmp(aux, "NLG")) {
+        printf("No user is logged in.\n");
+        return;
+    } else if (!strcmp(aux, "OK")) {
+        int i = printAuctions(buffer + 7);
+
+        if (i == -1) {
+            printf("Invalid response from server.\n");
+        } else if (i == -2) {
+            printf("User is not logged in.\n");
+        }
+    }
+    else {
+        printf("My bids: Invalid response from server.\n");
+        return;
+    }
+}
+
 int main(int argc, char *argv[]) {
     char prompt[512];
     char prompt_args[16][128];
@@ -472,7 +539,7 @@ int main(int argc, char *argv[]) {
         } else if (!strcmp(prompt_args[0], "myauctions") || !strcmp(prompt_args[0], "ma")) {
             listMyAuctions(prompt_args_count);
         } else if (!strcmp(prompt_args[0], "mybids") || !strcmp(prompt_args[0], "mb")) {
-            // TODO My_bids function
+            myBids(prompt_args_count);
         } else if (!strcmp(prompt_args[0], "list") || !strcmp(prompt_args[0], "l")) {
             listAllAuctions(prompt_args_count);
         } else if (!strcmp(prompt_args[0], "show_asset") || !strcmp(prompt_args[0], "sa")) {
