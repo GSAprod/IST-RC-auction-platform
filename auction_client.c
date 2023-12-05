@@ -441,7 +441,8 @@ int main(int argc, char *argv[]) {
 
     // Set the parameters of the server according to the program's arguments
     setServerParameters(argc, argv);
-    socket_setup();
+    setup_UDP();
+    setup_TCP();
 
     memset(userID, 0, sizeof userID);
     memset(userPasswd, 0, sizeof userPasswd);
@@ -487,6 +488,7 @@ int main(int argc, char *argv[]) {
 
     }
         printf("finish\n");
-        socket_free();
+        UDP_free();
+        TCP_free();
 }
 
