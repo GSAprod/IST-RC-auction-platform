@@ -10,6 +10,8 @@
 #include <netdb.h>
 #include "client_connections.h"
 
+// soulindo -> Password
+
 // User credentials (they can be used in many requests to the server)
 char userID[6], userPasswd[8];
 
