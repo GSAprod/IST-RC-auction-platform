@@ -502,8 +502,85 @@ void myBids(int arg_count) {
 }
 
 void showRecord(int argc, char argv[][128]) {
-    if (argc != 2) {
-        printf("Wrong arguments given.\n\t> show_record <auction_id>\n\t> sr <auction_id>\n");
+
+    void handleAuctions(char *auctions) {
+        char c = 'a';
+        int i = 0, j= 0;
+        char buffer[1024];
+
+        memset(buffer, 0, sizeof buffer);
+
+        // Read auction
+        printf("Auction:\n");
+        while (1) {
+            c = auctions[i];
+            if (c == 'B' || c == '\0' || c == 'E') {
+                break;
+            }
+            buffer[j] = c;
+            i++;
+            j++;
+        }
+        printf("%s\n", buffer);
+
+        memset(buffer, 0, sizeof buffer);
+
+        if (c == 'B') {
+            // Read bids
+            
+            i+= 2;
+            j= 0;
+
+            printf("Bids:\n");
+            int repeat = 1;
+            while (repeat) {
+                repeat = 0;
+                memset(buffer, 0, sizeof buffer);
+                while (1) {
+                    c = auctions[i];
+                    if (c == 'B') {
+                        repeat = 1;
+                        break;
+                    }
+                    if (c == 'E' || c == '\0') {
+                        break;
+                    }
+                    buffer[j] = c;
+                    i++;
+                    j++;
+                }
+                printf("-> %s", buffer);
+            }
+            printf("\n");
+        }
+
+        if (c == 'E') {
+            i += 2;
+            j = 0;
+
+            printf("End:\n");
+
+            memset(buffer, 0, sizeof buffer);
+            while (1) {
+                c = auctions[i];
+                if (c == '\0' || c == '\n') {
+                    i++;
+                    break;
+                }
+                buffer[j] = c;
+                i++;
+                j++;
+            }
+            printf("%s", buffer);
+            printf("\n");
+        }
+
+        return;
+
+    }
+
+    if (argc != 2 || strlen(argv[1]) != 3) {
+        printf("Wrong arguments given.\n\t> show_record <auction_id>\n\t> sr <auction_id>\n\t (auction_id: 3-digit number)\n");
         return;
     }
 
@@ -524,6 +601,7 @@ void showRecord(int argc, char argv[][128]) {
 
     char aux[4];
     memset(aux, 0, sizeof aux);
+    strncpy(aux, buffer, 3);
     if (strcmp(aux, "RRC")) {
         printf("Show record: Invalid response from server.\n");
         return;
@@ -536,7 +614,9 @@ void showRecord(int argc, char argv[][128]) {
         printf("Auction does not exist.\n");
         return;
     } else if (!strcmp(aux, "OK ")) {
-        printf("%s\n", buffer + 7);
+        //TODO: STILL HAS TO BE HANDLED
+        printf("%s", buffer + 7);
+        handleAuctions(buffer + 7);
     } else {
         printf("Show record: Invalid response from server.\n");
         return;
