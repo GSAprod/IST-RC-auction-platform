@@ -37,23 +37,21 @@ void userLogout() {
     char * token = strtok(buffer, " ");
 
     if (strcmp(token, "RLO")) {
-        printf("Error: Invalid response from server.\n");
+        printf("Logout: Invalid response from server.\n");
         return;
     }
 
-    token = token + 4;
-
-    if (!strcmp(token, "OK\n")) {
+    if (!strcmp(buffer + 4, "OK\n")) {
         printf("successful logout\n");
             
         // Clear the user credentials
-        memset(userPasswd, 0, sizeof userPasswd);
-        memset(userID, 0, sizeof userID);
-    } else if (!strcmp(token, "NOK\n")) {
+    } else if (!strcmp(buffer + 4, "NOK\n")) {
         printf("user not logged in\n");
-    } else if (!strcmp(token, "UNR\n")) {
+    } else if (!strcmp(buffer + 4, "UNR\n")) {
         printf("unknown user\n");
     }
+    memset(userPasswd, 0, sizeof userPasswd);
+    memset(userID, 0, sizeof userID);
 }
 
 /***
