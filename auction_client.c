@@ -366,6 +366,74 @@ void listAllAuctions(int arg_count) {
     }
 }
 
+/***
+ * Lists all auctions that the logged in user (with login credentials in the
+ * global variables userId and userPasswd) has created.
+ * 
+ * @param arg_count The number of arguments of the prompt
+ */
+void listMyAuctions(int arg_count) {
+    char buffer[8192], aux[16];
+    int status;
+
+    if (arg_count != 1) {
+        printf("List all auctions: Wrong arguments given.\n\tlist\n\tl\n");
+        return;
+    }
+
+    if (!strcmp(userID, "")) {
+        printf("No user is logged in.\n");
+        return;
+    }
+
+    // Generate the string for sending the auction listing request to the server, 
+    // and send it using the UDP protocol
+    sprintf(buffer, "LMA %s\n", userID);
+    status = udp_send(buffer);
+    if (status == -1) {
+        printf("List my auctions: failed to send request");
+        return;
+    }
+
+    // Check if the response type of the server is RMA
+    memset(buffer, 0, sizeof buffer);
+    memset(aux, 0, sizeof aux);
+    status = udp_receive(buffer, sizeof buffer);
+    if (status == -1) {
+        printf("List my auctions: failed to receive response from server.\n");
+        return;
+    }
+    strncpy(aux, buffer, 4);
+    if (strcmp(aux, "RMA ")) {
+        printf("List my auctions: failed to receive response from server.\n");
+        return;
+    }
+
+    memset(aux, 0, sizeof aux);
+    strncpy(aux, buffer+4, 3);
+    if (!strcmp(aux, "NOK")) {
+        printf("You have no ongoing auctions.\n");
+        return;
+    } else if (!strcmp(aux,"NLG")) {
+        printf("No user is logged in.\n");
+        return;
+    } else if (!strcmp(aux, "OK ")) {
+        //! This part has not yet been tested!
+        // Print a table with all auctions and their respective status
+        status = printAuctions(buffer + 7);
+        if (status == -1) {
+            printf("List all auctions: Invalid response from server.\n");
+        } else if (status == -2) {
+            printf("No auctions have yet been started.\n");
+        }
+    } else {
+        // If a different status (other than OK and NOK) is sent by the server,
+        // send an error
+        printf("List all auctions: failed to receive response from server.\n");
+        return;
+    }
+}
+
 int main(int argc, char *argv[]) {
     char prompt[512];
     char prompt_args[16][128];
@@ -402,7 +470,7 @@ int main(int argc, char *argv[]) {
         } else if (!strcmp(prompt_args[0], "close")) {
             // TODO Close function
         } else if (!strcmp(prompt_args[0], "myauctions") || !strcmp(prompt_args[0], "ma")) {
-            // TODO My_auctions function
+            listMyAuctions(prompt_args_count);
         } else if (!strcmp(prompt_args[0], "mybids") || !strcmp(prompt_args[0], "mb")) {
             // TODO My_bids function
         } else if (!strcmp(prompt_args[0], "list") || !strcmp(prompt_args[0], "l")) {
