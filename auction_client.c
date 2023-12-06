@@ -458,6 +458,128 @@ void openAuction(int arg_count, char arg_values[][128]) {
 
 }
 
+void closeAuction(int arg_count, char arg_values[][128]) {
+    if (arg_count != 2) {
+        printf("Close auction: Wrong arguments given.\n\t>close <auction_id>\n");
+        return;
+    }
+
+    if (!strcmp(userID, "")) {
+        printf("No user is logged in.\n");
+        return;
+    }
+
+    char * auction_id = arg_values[1];
+
+    char buffer[128];
+    memset(buffer, 0, sizeof buffer);
+
+    sprintf(buffer, "CLS %s %s %s\n", userID, userPasswd, auction_id);
+
+    setup_TCP();
+    tcp_connect();
+
+    tcp_send(buffer, strlen(buffer));
+
+    memset(buffer, 0, sizeof buffer);
+
+    tcp_receive(buffer, sizeof buffer);
+
+    TCP_free();
+
+    printf("%s", buffer);
+
+    char aux[4];
+    memset(aux, 0, sizeof aux);
+
+    strncpy(aux, buffer, 3);
+
+    if (strcmp(aux, "RCL")) {
+        printf("Close auction: Invalid response from server.\n");
+        return;
+    }
+
+    if (!strcmp(buffer + 4, "OK\n")) {
+        return;
+    }
+    else if (!strcmp(buffer + 4, "NLG\n")) {
+        printf("User is not logged in.\n");
+    }
+    else if (!strcmp(buffer + 4, "EAU\n")) {
+        printf("Auction does not exist.\n");
+    }
+    else if (!strcmp(buffer + 4, "EOW\n")) {
+        printf("Auction not owned by user.\n");
+    }
+    else if (!strcmp(buffer + 4, "END\n")) {
+        printf("Auction already closed.\n");
+    }
+    printf("Close auction: Invalid response from server.\n");
+    return;
+}
+
+void showAsset(int arg_count, char arg_values[][128]) {
+    if (arg_count != 2) {
+        printf("Show asset: Wrong arguments given.\n\t>show_asset <asset_id>\n");
+        return;
+    }
+
+    if (!strcmp(userID, "")) {
+        printf("No user is logged in.\n");
+        return;
+    }
+
+    char * asset_id = arg_values[1];
+
+    char buffer[10000000]; //! 10MB buffer
+    memset(buffer, 0, sizeof buffer);
+
+    sprintf(buffer, "SAS %s\n", asset_id);
+
+    setup_TCP();
+    tcp_connect();
+
+    tcp_send(buffer, strlen(buffer));
+
+    memset(buffer, 0, 128); // No need to clear the entire buffer
+
+    tcp_receive(buffer, sizeof buffer);
+
+    TCP_free();
+
+    printf("%s", buffer);
+
+    char aux[4];
+    memset(aux, 0, sizeof aux);
+
+    strncpy(aux, buffer, 3);
+
+    if (strcmp(aux, "RSA")) {
+        printf("Show asset: Invalid response from server.\n");
+        return;
+    }
+
+    strncpy(aux, buffer + 4, 3);
+
+    if (!strcmp(aux, "OK ")) {
+        return;
+    }
+    else if (!strcmp(aux, "NLG\n")) {
+        printf("User is not logged in.\n");
+    }
+    else if (!strcmp(buffer + 4, "EAU\n")) {
+        printf("Auction does not exist.\n");
+    }
+    else if (!strcmp(buffer + 4, "EOW\n")) {
+        printf("Auction not owned by user.\n");
+    }
+    else if (!strcmp(buffer + 4, "END\n")) {
+        printf("Auction already closed.\n");
+    }
+    printf("Show asset: Invalid response from server.\n");
+    return;
+}
+
 /***
  * Lists all auctions that the logged in user (with login credentials in the
  * global variables userId and userPasswd) has created.
