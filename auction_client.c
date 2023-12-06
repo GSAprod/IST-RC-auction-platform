@@ -325,6 +325,7 @@ void listAllAuctions(int arg_count) {
     // Generate the string for sending the auction listing request to the server, 
     // and send it using the UDP protocol
     sprintf(buffer, "LST\n");
+    printf("%s", buffer);
     status = udp_send(buffer);
     if (status == -1) {
         printf("List all auctions: failed to send request");
@@ -339,6 +340,7 @@ void listAllAuctions(int arg_count) {
         printf("List all auctions: failed to receive response from server.\n");
         return;
     }
+    printf("%s", buffer);
     strncpy(aux, buffer, 4);
     if (strcmp(aux, "RLS ")) {
         printf("List all auctions: failed to receive response from server.\n");
@@ -501,6 +503,126 @@ void myBids(int arg_count) {
     }
 }
 
+void showRecord(int argc, char argv[][128]) {
+
+    void handleAuctions(char *auctions) {
+        char c = 'a';
+        int i = 0, j= 0;
+        char buffer[1024];
+
+        memset(buffer, 0, sizeof buffer);
+
+        // Read auction
+        printf("Auction:\n");
+        while (1) {
+            c = auctions[i];
+            if (c == 'B' || c == '\0' || c == 'E') {
+                break;
+            }
+            buffer[j] = c;
+            i++;
+            j++;
+        }
+        printf("%s\n", buffer);
+
+        memset(buffer, 0, sizeof buffer);
+
+        if (c == 'B') {
+            // Read bids
+            
+            i+= 2;
+            j= 0;
+
+            printf("Bids:\n");
+            int repeat = 1;
+            while (repeat) {
+                repeat = 0;
+                memset(buffer, 0, sizeof buffer);
+                while (1) {
+                    c = auctions[i];
+                    if (c == 'B') {
+                        repeat = 1;
+                        break;
+                    }
+                    if (c == 'E' || c == '\0') {
+                        break;
+                    }
+                    buffer[j] = c;
+                    i++;
+                    j++;
+                }
+                printf("-> %s", buffer);
+            }
+            printf("\n");
+        }
+
+        if (c == 'E') {
+            i += 2;
+            j = 0;
+
+            printf("End:\n");
+
+            memset(buffer, 0, sizeof buffer);
+            while (1) {
+                c = auctions[i];
+                if (c == '\0' || c == '\n') {
+                    i++;
+                    break;
+                }
+                buffer[j] = c;
+                i++;
+                j++;
+            }
+            printf("%s", buffer);
+            printf("\n");
+        }
+
+        return;
+
+    }
+
+    if (argc != 2 || strlen(argv[1]) != 3) {
+        printf("Wrong arguments given.\n\t> show_record <auction_id>\n\t> sr <auction_id>\n\t (auction_id: 3-digit number)\n");
+        return;
+    }
+
+    char buffer[8192];
+    memset(buffer, 0, sizeof buffer);
+
+    sprintf(buffer, "SRC %s\n", argv[1]);
+
+    udp_send(buffer);
+
+    memset(buffer, 0, sizeof buffer);
+
+    int status = udp_receive(buffer, sizeof buffer);
+    if (status == -1) {
+        printf("Show record: failed to receive response from server.\n");
+        return;
+    }
+
+    char aux[4];
+    memset(aux, 0, sizeof aux);
+    strncpy(aux, buffer, 3);
+    if (strcmp(aux, "RRC")) {
+        printf("Show record: Invalid response from server.\n");
+        return;
+    }
+
+    memset(aux, 0, sizeof aux);
+    strncpy(aux, buffer + 4, 3);
+
+    if (!strcmp(aux, "NOK")) {
+        printf("Auction does not exist.\n");
+        return;
+    } else if (!strcmp(aux, "OK ")) {
+        handleAuctions(buffer + 7);
+    } else {
+        printf("Show record: Invalid response from server.\n");
+        return;
+    }
+}
+
 int main(int argc, char *argv[]) {
     char prompt[512];
     char prompt_args[16][128];
@@ -547,7 +669,7 @@ int main(int argc, char *argv[]) {
         } else if (!strcmp(prompt_args[0], "bid") || !strcmp(prompt_args[0], "b")) {
             // TODO My_auctions function
         } else if (!strcmp(prompt_args[0], "show_record") || !strcmp(prompt_args[0], "sr")) {
-            // TODO My_auctions function
+            showRecord(prompt_args_count, prompt_args);
         } else {
             printf("Command not found.\n");
         }
