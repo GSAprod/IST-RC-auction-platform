@@ -8,7 +8,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <sys/stat.h>
 #include "client_connections.h"
+#include "file_handling.h"
 
 // soulindo -> Password
 
@@ -368,6 +370,94 @@ void listAllAuctions(int arg_count) {
     }
 }
 
+void openAuction(int arg_count, char arg_values[][128]) {
+    char buffer[1024];
+    char * name = arg_values[1];
+    char * fname = arg_values[2];
+    char * start_value = arg_values[3];
+    char * time_active = arg_values[4];
+    int fsize;
+
+    memset(buffer, 0, sizeof buffer);
+
+    if (arg_count != 5) {
+        printf("Open auction: Wrong arguments given.\n\t>open <asset> <asset_fname> <start_value> <time_active>\n");
+        return;
+    }
+
+    if (!strcmp(userID, "")) {
+        printf("No user is logged in.\n");
+        return;
+    }
+
+    fsize = checkAssetFile(fname);
+
+    if (fsize <= 0) {
+        printf("Asset file does not exist or is empty.\n");
+        return;
+    }
+
+    setup_TCP();
+    tcp_connect();
+
+    //Sends the beginning of the TCP message
+    sprintf(buffer, "OPA %s %s %s %s %s %s %d ", userID, userPasswd , name, start_value , time_active, fname, fsize);
+    tcp_send(buffer, strlen(buffer));
+
+    memset(buffer, 0, sizeof buffer);
+    
+    FILE * file = fopen(fname, "r");
+    if (file == NULL) {
+        printf("Error opening file.\n");
+        TCP_free();
+        return;
+    }
+
+    size_t bytes_read;
+    while ((bytes_read = fread(buffer, sizeof buffer, 1, file)) > 0) {
+        tcp_send(buffer, bytes_read);
+        memset(buffer, 0, sizeof buffer);
+    }
+
+    fclose(file);
+    tcp_send("\n", 1);
+
+    memset(buffer, 0, sizeof buffer);
+
+    tcp_receive(buffer, sizeof buffer);
+    TCP_free();
+
+    printf("%s", buffer);
+    char *token = strtok(buffer, " ");
+
+    if (strcmp(token, "ROA")) {
+        printf("Open auction: Invalid response from server.\n");
+        return;
+    }
+
+    token = strtok(NULL, " ");
+
+    if (!strcmp(token, "NOK\n")) {
+        printf("Could not open auction.\n");
+    }
+    else if (!strcmp(token, "NLG\n")) {
+        printf("No user is logged in.\n");
+    }
+    else if (!strcmp(token, "OK")) {
+        token = strtok(NULL, " ");
+        printf("Auction %s opened with ID %s.\n", name, token);
+    }
+    else {
+        printf("Open auction: Invalid response from server.\n");
+        return;
+    }
+
+
+
+    return;
+
+}
+
 /***
  * Lists all auctions that the logged in user (with login credentials in the
  * global variables userId and userPasswd) has created.
@@ -656,7 +746,7 @@ int main(int argc, char *argv[]) {
                 break;
             }
         } else if (!strcmp(prompt_args[0], "open")) {
-            // TODO Open function
+            openAuction(prompt_args_count, prompt_args);
         } else if (!strcmp(prompt_args[0], "close")) {
             // TODO Close function
         } else if (!strcmp(prompt_args[0], "myauctions") || !strcmp(prompt_args[0], "ma")) {
