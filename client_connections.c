@@ -159,6 +159,12 @@ int udp_receive(char* dest, int max_len) {
     return 0;
 }
 
+/***
+ * Creates a connection onto the TCP socket
+ * 
+ * @return 0 if the connection is established, -1 if there was an error
+ * connecting
+*/
 int tcp_connect() {
     int n;
     n=connect(tcp_fd, tcp_info->ai_addr, tcp_info->ai_addrlen);
@@ -208,7 +214,10 @@ int tcp_receive(char* dest, int max_len) {
     bytesLeft = max_len;
     while(bytesLeft > 0) {
         bytesRead = read(tcp_fd, ptr, bytesLeft);
-        if(bytesRead == -1) return -1;
+        if(bytesRead == -1) {
+            if (errno == ECONNRESET) return 0;
+            return -1;
+        }
         else if (bytesRead == 0) break;
         bytesLeft -= bytesRead;
         ptr += bytesRead;
@@ -217,6 +226,12 @@ int tcp_receive(char* dest, int max_len) {
     return max_len - bytesLeft;
 }
 
+/***
+ * Closes the TCP connection.
+ * 
+ * @returns 0 if the connection is closed properly, other
+ * values otherwise
+*/
 int tcp_close() {
     return close(tcp_fd);
 }
