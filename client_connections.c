@@ -116,6 +116,7 @@ void UDP_free() {
  * as the program closes.
 */
 void TCP_free() {
+    close(tcp_fd);
     freeaddrinfo(tcp_info);
 }
 
@@ -224,14 +225,4 @@ int tcp_receive(char* dest, int max_len) {
     }
 
     return max_len - bytesLeft;
-}
-
-/***
- * Closes the TCP connection.
- * 
- * @returns 0 if the connection is closed properly, other
- * values otherwise
-*/
-int tcp_close() {
-    return close(tcp_fd);
 }

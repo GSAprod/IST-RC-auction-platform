@@ -110,12 +110,4 @@ int tcp_send(char* message, int message_len);
 */
 int tcp_receive(char* dest, int max_len);
 
-/***
- * Closes the TCP connection.
- * 
- * @returns 0 if the connection is closed properly, other
- * values otherwise
-*/
-int tcp_close();
-
 #endif
