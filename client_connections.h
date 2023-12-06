@@ -30,19 +30,32 @@ void setServerParameters(int argc, char *argv[]);
 
 
 /***
- * Sets up the TCP and UDP socket connections by setting, respectively,
- * the global descriptors udp_fd and tcp_fd, and the addrinfo structs udp_info and
- * tcp_info.
+ * Sets up the UDP socket connections by setting the global descriptor udp_fd, 
+ * and the addrinfo struct udp_info.
  * 
  * @return 0 if the setup is successful, -1 otherwise
 */
-int socket_setup();
+int setup_UDP();
 
 /***
- * Frees up the socket information structures. This function should be used
+ * Sets up the TCP socket connections by setting the global descriptor tcp_fd, 
+ * and the addrinfo struct tcp_info.
+ * 
+ * @return 0 if the setup is successful, -1 otherwise
+*/
+int setup_TCP();
+
+/***
+ * Frees up the UDP socket information structure. This function should be used
  * as the program closes.
 */
-void socket_free();
+void UDP_free();
+
+/***
+ * Frees up the TCP socket information structures. This function should be used
+ * as the program closes.
+*/
+void TCP_free();
 
 /***
  * Sends a message using the UDP connection protocol, with the parameters
@@ -67,15 +80,24 @@ int udp_send(char* message);
 int udp_receive(char* dest, int max_len);
 
 /***
+ * Creates a connection onto the TCP socket
+ * 
+ * @return 0 if the connection is established, -1 if there was an error
+ * connecting
+*/
+int tcp_connect();
+
+/***
  * Sends a message using the TCp connection protocol, with the parameters
  * established in the variables udp_fd and udp_info.
  * 
  * @param message The message to be sent
+ * @param message_len The length of the message that is sent
  * 
  * @return 0 if the mesage was sent, -1 if an error occurs 
  * while sending the message
 */
-int tcp_send(char* message);
+int tcp_send(char* message, int message_len);
 
 /***
  * Reads a certain number of bytes from the TCP socket.
