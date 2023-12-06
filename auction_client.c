@@ -325,6 +325,7 @@ void listAllAuctions(int arg_count) {
     // Generate the string for sending the auction listing request to the server, 
     // and send it using the UDP protocol
     sprintf(buffer, "LST\n");
+    printf("%s", buffer);
     status = udp_send(buffer);
     if (status == -1) {
         printf("List all auctions: failed to send request");
@@ -339,6 +340,7 @@ void listAllAuctions(int arg_count) {
         printf("List all auctions: failed to receive response from server.\n");
         return;
     }
+    printf("%s", buffer);
     strncpy(aux, buffer, 4);
     if (strcmp(aux, "RLS ")) {
         printf("List all auctions: failed to receive response from server.\n");
@@ -614,8 +616,6 @@ void showRecord(int argc, char argv[][128]) {
         printf("Auction does not exist.\n");
         return;
     } else if (!strcmp(aux, "OK ")) {
-        //TODO: STILL HAS TO BE HANDLED
-        printf("%s", buffer + 7);
         handleAuctions(buffer + 7);
     } else {
         printf("Show record: Invalid response from server.\n");
