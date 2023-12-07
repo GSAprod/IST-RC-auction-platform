@@ -2,6 +2,9 @@
 #define FILE_HANDLING_H
 
 #include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include "client_connections.h"
 
 
 /*
@@ -12,6 +15,8 @@
 */
 int checkAssetFile(char * filename);
 
+int sendFile(char * filename, long fsize);
 
+int receiveFile(char * filename, long fsize, char * beginning_bytes, int beginning_bytes_size);
 
 #endif
