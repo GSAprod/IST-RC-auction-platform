@@ -80,9 +80,41 @@ int setup_UDP() {
 }
 
 /***
+ * Sets up the UDP socket connections for the server by setting the global descriptor udp_fd.
+ * and the addrinfo struct udp_info.
+ * 
+ * @param port The port the server is using for receiving messages
+ * @return 0 if the setup is successful, -1 otherwise
+*/
+int server_setup_UDP(char* port) {
+    int errcode;
+    struct addrinfo udp_hints;
+    
+    if(atoi(port) <= 0 || atoi(port) > 65535) return -1;
+
+    // UDP socket
+    udp_fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (udp_fd == -1) return -1;
+
+    memset(&udp_hints, 0, sizeof udp_hints);
+    udp_hints.ai_family = AF_INET;      // IPv4
+    udp_hints.ai_socktype = SOCK_DGRAM; // UDP socket
+    udp_hints.ai_flags = AI_PASSIVE;
+
+    errcode = getaddrinfo(NULL, port, &udp_hints, &udp_info);
+    if (errcode != 0) return -1;
+
+    errcode = bind(udp_fd, udp_info->ai_addr, udp_info->ai_addrlen);
+    if (errcode == -1) return -1;
+
+    return 0;
+}
+
+/***
  * Sets up the TCP socket connections by setting the global descriptor tcp_fd, 
  * and the addrinfo struct tcp_info.
  * 
+ * @param port The port the server is using for receiving messages
  * @return 0 if the setup is successful, -1 otherwise
 */
 int setup_TCP() {
@@ -104,10 +136,41 @@ int setup_TCP() {
 }
 
 /***
+ * Sets up the TCP socket connections for a server by setting 
+ * the global descriptor tcp_fd, and the addrinfo struct tcp_info.
+ * 
+ * @return 0 if the setup is successful, -1 otherwise
+*/
+int server_setup_TCP(char* port) {
+    int errcode;
+    struct addrinfo tcp_hints;
+
+    // TCP socket
+    tcp_fd = socket(AF_INET, SOCK_STREAM, 0); 
+    if (tcp_fd == -1) return -1;
+
+    memset(&tcp_hints, 0, sizeof tcp_hints);
+    tcp_hints.ai_family = AF_INET;      // IPv4
+    tcp_hints.ai_socktype = SOCK_STREAM; // UDP socket
+    tcp_hints.ai_flags = AI_PASSIVE;
+
+    errcode = getaddrinfo(NULL, port, &tcp_hints, &tcp_info);
+    if (errcode != 0) return -1;
+
+    errcode = bind(tcp_fd, tcp_info->ai_addr, tcp_info->ai_addrlen);
+    if (errcode == -1) return -1;
+
+    if (listen(tcp_fd, 5) == -1) return -1;
+
+    return 0;
+}
+
+/***
  * Frees up the UDP socket information structure. This function should be used
  * as the program closes.
 */
 void UDP_free() {
+    close(udp_fd);
     freeaddrinfo(udp_info);
 }
 

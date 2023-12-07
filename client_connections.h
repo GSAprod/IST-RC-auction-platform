@@ -38,12 +38,29 @@ void setServerParameters(int argc, char *argv[]);
 int setup_UDP();
 
 /***
+ * Sets up the UDP socket connections for the server by setting the global descriptor udp_fd.
+ * and the addrinfo struct udp_info.
+ * 
+ * @param port The port the server is using for receiving messages
+ * @return 0 if the setup is successful, -1 otherwise
+*/
+int server_setup_UDP(char* port);
+
+/***
  * Sets up the TCP socket connections by setting the global descriptor tcp_fd, 
  * and the addrinfo struct tcp_info.
  * 
  * @return 0 if the setup is successful, -1 otherwise
 */
 int setup_TCP();
+
+/***
+ * Sets up the TCP socket connections for a server by setting 
+ * the global descriptor tcp_fd, and the addrinfo struct tcp_info.
+ * 
+ * @return 0 if the setup is successful, -1 otherwise
+*/
+int server_setup_TCP(char* port);
 
 /***
  * Frees up the UDP socket information structure. This function should be used

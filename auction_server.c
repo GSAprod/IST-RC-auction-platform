@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include "client_connections.h"
 #define DEFAULT_PORT "58057"
 
 char port[8];
@@ -63,7 +66,22 @@ void set_program_parameters(int argc, char* argv[]) {
 }
 
 int main(int argc, char *argv[]) {
+    int status;
+
     set_program_parameters(argc, argv);
 
-    printf("finish\n");
+    status = server_setup_UDP(port);
+    if (status == -1) {
+        printf("Failure setting up server.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    status = server_setup_TCP(port);
+    if (status == -1) {
+        printf("Failure setting up server.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    UDP_free();
+    TCP_free();
 }
