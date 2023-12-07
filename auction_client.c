@@ -403,8 +403,6 @@ void openAuction(int arg_count, char arg_values[][128]) {
     //Sends the beginning of the TCP message
     sprintf(buffer, "OPA %s %s %s %s %s %s %d ", userID, userPasswd , name, start_value , time_active, fname, fsize);
     tcp_send(buffer, strlen(buffer));
-
-    memset(buffer, 0, sizeof buffer);
     
     //Sends the file
     if (sendFile(fname, fsize)) {
@@ -443,8 +441,6 @@ void openAuction(int arg_count, char arg_values[][128]) {
         printf("Open auction: Invalid response from server.\n");
         return;
     }
-
-
 
     return;
 
@@ -574,6 +570,7 @@ void showAsset(int arg_count, char arg_values[][128]) {
         int fdata_beginning = 7 + strlen(fname) + strlen(fsize) + 2;
 
         receiveFile(fname, atoi(fsize), buffer + fdata_beginning, 128 - fdata_beginning);
+        TCP_free();
         return;
     }
 
