@@ -42,7 +42,7 @@ int setup_UDP();
  * and the addrinfo struct udp_info.
  * 
  * @param port The port the server is using for receiving messages
- * @return 0 if the setup is successful, -1 otherwise
+ * @return udp_fd if the setup is successful, -1 otherwise
 */
 int server_setup_UDP(char* port);
 
@@ -58,7 +58,7 @@ int setup_TCP();
  * Sets up the TCP socket connections for a server by setting 
  * the global descriptor tcp_fd, and the addrinfo struct tcp_info.
  * 
- * @return 0 if the setup is successful, -1 otherwise
+ * @return tcp_fd if the setup is successful, -1 otherwise
 */
 int server_setup_TCP(char* port);
 

@@ -1,8 +1,17 @@
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <time.h>
 #include <stdio.h>
+#include <fcntl.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
-#include <unistd.h>
+#include <errno.h>
+#include <signal.h>
 #include "client_connections.h"
 #define DEFAULT_PORT "58057"
 
@@ -66,20 +75,49 @@ void set_program_parameters(int argc, char* argv[]) {
 }
 
 int main(int argc, char *argv[]) {
-    int status;
+    int tcp_fd, udp_fd, out_fds;
+    fd_set inputs, current_fds;
+    struct timeval timeout;
 
     set_program_parameters(argc, argv);
 
-    status = server_setup_UDP(port);
-    if (status == -1) {
+    udp_fd = server_setup_UDP(port);
+    if (udp_fd == -1) {
         printf("Failure setting up server.\n");
         exit(EXIT_FAILURE);
     }
 
-    status = server_setup_TCP(port);
-    if (status == -1) {
+    tcp_fd = server_setup_TCP(port);
+    if (tcp_fd == -1) {
         printf("Failure setting up server.\n");
         exit(EXIT_FAILURE);
+    }
+
+    FD_ZERO(&inputs);   // Clear input mask
+    FD_SET(udp_fd, &inputs);     // Set UDP channel on for listening to activity
+
+    while(1) {
+        current_fds = inputs;   // Reload mask
+
+        memset((void *) &timeout, 0, sizeof(timeout));
+        timeout.tv_sec = 5;     // Set a timeout for every select function
+
+        out_fds = select(FD_SETSIZE, &current_fds, (fd_set *) NULL, (fd_set *) NULL, (struct timeval *) &timeout);
+
+        switch(out_fds) {
+            case 0:
+                printf("sdjfjsdfj\n");
+                break;
+            case -1:
+                printf("Error on select.\n");
+                exit(EXIT_FAILURE);
+            default:
+                if(FD_ISSET(udp_fd, &current_fds)) {
+                    //? Read message from UDP
+                    break;
+                }
+                //? Add for TCP
+        }
     }
 
     UDP_free();

@@ -84,8 +84,8 @@ int setup_UDP() {
  * and the addrinfo struct udp_info.
  * 
  * @param port The port the server is using for receiving messages
- * @return 0 if the setup is successful, -1 otherwise
-*/
+ * @return udp_fd if the setup is successful, -1 otherwise
+ */
 int server_setup_UDP(char* port) {
     int errcode;
     struct addrinfo udp_hints;
@@ -107,7 +107,7 @@ int server_setup_UDP(char* port) {
     errcode = bind(udp_fd, udp_info->ai_addr, udp_info->ai_addrlen);
     if (errcode == -1) return -1;
 
-    return 0;
+    return udp_fd;
 }
 
 /***
@@ -139,7 +139,7 @@ int setup_TCP() {
  * Sets up the TCP socket connections for a server by setting 
  * the global descriptor tcp_fd, and the addrinfo struct tcp_info.
  * 
- * @return 0 if the setup is successful, -1 otherwise
+ * @return tcp_fd if the setup is successful, -1 otherwise
 */
 int server_setup_TCP(char* port) {
     int errcode;
@@ -162,7 +162,7 @@ int server_setup_TCP(char* port) {
 
     if (listen(tcp_fd, 5) == -1) return -1;
 
-    return 0;
+    return tcp_fd;
 }
 
 /***
