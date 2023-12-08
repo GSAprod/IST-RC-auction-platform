@@ -106,27 +106,14 @@ int main(int argc, char *argv[]) {
 
         switch(out_fds) {
             case 0:
-                printf("Timeout.\n");
+                printf("sdjfjsdfj\n");
                 break;
             case -1:
                 printf("Error on select.\n");
                 exit(EXIT_FAILURE);
             default:
                 if(FD_ISSET(udp_fd, &current_fds)) {
-                    int status;
-                    char buffer[256];
-                    struct sockaddr sender_addr;
-                    socklen_t sender_addr_len = sizeof(sender_addr);
-
-                    memset(buffer, 0, sizeof buffer);
-                    status = server_udp_receive(buffer, 256, &sender_addr, &sender_addr_len);
-                    if (status == -1) exit(EXIT_FAILURE);
-                    write(1, buffer, strlen(buffer));
-
-                    status = server_udp_send("RLI OK\n", &sender_addr, sender_addr_len);
-                    if (status == -1) {perror("jfdghfdgh"); exit(EXIT_FAILURE);}
-
-                    //! Change this so the server can handle messages
+                    //? Read message from UDP
                     break;
                 }
                 //? Add for TCP
