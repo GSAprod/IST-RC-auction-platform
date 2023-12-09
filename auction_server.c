@@ -137,19 +137,94 @@ void login_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_l
             printf("Login: Incorrect credentials given - user %s\n", userID);
         //? Same here
         server_udp_send("RLI NOK\n", to_addr, to_addr_len);
-        return;
     } else if (status == 0 || status == 1) {
         if (is_mode_verbose) 
             printf("Login: User %s has logged in\n", userID);
         //? Same here
         server_udp_send("RLI OK\n", to_addr, to_addr_len);
-        return;
     } else if (status == 2) {
         if (is_mode_verbose) 
             printf("Login: New user with ID %s has been registered.\n", userID);
         //? Same here
         server_udp_send("RLI REG\n", to_addr, to_addr_len);
+    }
+
+    return;
+}
+
+/***
+ * Logs out a user, if it exists in the database
+ * 
+ * @param message The UDP request that contains the info necessary for the login.
+ * It should have this format: 'LOU UID password'
+ * @param to_addr The address where the UDP message should be sent to
+ * @param to_addr_len The length of the address where the UDP message is sent
+*/
+void logout_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_len) {
+    char* token;
+    char userID[7], userPasswd[9];
+    int status;
+
+    strtok(message, " ");    // This only gets the "LOU " string
+
+    // Get the user ID and verify if it's a 6-digit number
+    token = strtok(NULL, " ");
+    if (strlen(token) != 6) {
+        if (is_mode_verbose) printf("Invalid UDP request made to server.\n");
+        //? Should we check if the status is -1? If so, what should we do?
+        server_udp_send("ERR\n", to_addr, to_addr_len);
         return;
+    }
+    for(int i = 0; i < 6; i++) {
+        char c = token[i];
+        if (!isdigit(c)) {
+            if (is_mode_verbose) printf("Invalid UDP request made to server.\n");
+            //? Same here
+            server_udp_send("ERR\n", to_addr, to_addr_len);
+            return;
+        }
+    }
+    strcpy(userID, token);
+
+    // Get the user password and verify if it's an 8-digit number
+    token = strtok(NULL, "\n");
+    if (strlen(token) != 8) {
+        if (is_mode_verbose) printf("Invalid UDP request made to server.\n");
+        //? Should we check if the status is -1? If so, what should we do?
+        server_udp_send("ERR\n", to_addr, to_addr_len);
+        return;
+    }
+    for(int i = 0; i < 8; i++) {
+        char c = token[i];
+        if (!isdigit(c) && !isalpha(c)) {
+            if (is_mode_verbose) printf("Invalid UDP request made to server.\n");
+            //? Same here
+            server_udp_send("ERR\n", to_addr, to_addr_len);
+            return;
+        }
+    }
+    strcpy(userPasswd, token);
+
+    //* status = Logout(userID);
+    //? Logout function does not check the password, but neither does the statement
+    //? given by the teachers so............
+    //! There is no return value for a non-registered user (I'm using -1 in this case)
+    status = 1;    // TODO Delete this line
+    if (status == -1) {         //? I suppose -1 is when the credentials are incorrect
+        if (is_mode_verbose) 
+            printf("Logout: User %s not registered in database\n", userID);
+        //? Same here
+        server_udp_send("RLO UNR\n", to_addr, to_addr_len);
+    } else if (status == 0) {
+        if (is_mode_verbose) 
+            printf("Logout: User %s is not logged in\n", userID);
+        //? Same here
+        server_udp_send("RLO NOK\n", to_addr, to_addr_len);
+    } else if (status == 1) {
+        if (is_mode_verbose) 
+            printf("Logout: User %s has logged out.\n", userID);
+        //? Same here
+        server_udp_send("RLO OK\n", to_addr, to_addr_len);
     }
 
     return;
@@ -187,7 +262,7 @@ int handle_udp_request() {
     if(!strcmp(message_type, "LIN ")) {
         login_handling(buffer, &sender_addr, sender_addr_len);
     } else if (!strcmp(message_type, "LOU ")) {
-        // TODO Logout handling routine
+        logout_handling(buffer, &sender_addr, sender_addr_len);
     } else if (!strcmp(message_type, "UNR ")) {
         // TODO Unregister handling routine
     } else if (!strcmp(message_type, "LMA ")) {
