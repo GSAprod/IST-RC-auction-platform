@@ -86,6 +86,19 @@ void TCP_free();
 int udp_send(char* message);
 
 /***
+ * Sends a message using the UDP connection protocol to a specific address, 
+ * using the socket established in the variable udp_fd. 
+ * 
+ * @param message The message to be sent
+ * @param to_addr The address where the message should be sent to
+ * @param to_addr_len The length of the address where the message is sent
+ * 
+ * @return 0 if the mesage was sent, -1 if an error occurs 
+ * while sending the message
+*/
+int server_udp_send(char* message, struct sockaddr* to_addr, socklen_t to_addr_len);
+
+/***
  * Reads a certain number of bytes from the UDP socket.
  * 
  * @param dest The string where the received message is stored
@@ -95,6 +108,20 @@ int udp_send(char* message);
  * @return 0 if the message is received correctly, -1 otherwise
 */
 int udp_receive(char* dest, int max_len);
+
+/***
+ * Reads a certain number of bytes from the UDP socket and stores the address of the sender.
+ * 
+ * @param dest The string where the received message is stored
+ * @param max_len The maximum number of characters to be read
+ * @param from_addr The struct where the address of the sender is stored
+ * @param from_addr_len The struct where the length of the address of the sender is stored
+ * @note The number of characters received may be smaller than specified
+ * 
+ * @return 0 if the message is received correctly, -1 otherwise
+*/
+int server_udp_receive(char* dest, int max_len, struct sockaddr* from_addr,
+        socklen_t* from_addr_len);
 
 /***
  * Creates a connection onto the TCP socket
