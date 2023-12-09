@@ -241,6 +241,14 @@ int CreateAuction(char * UID, char*name, char * asset_fname, char * start_value,
 	return 0;
 }
 
+int closeAuction(char * AID, char * UID) {
+	if (DEBUG) printf("Closing auction %s\n", AID);
+
+	char fileName[256];
+
+	//TODO: Make close auction function
+}
+
 int Bid(char * AID, char * UID, char * value, char * datetime, char * fulltime) {
 	if (DEBUG) printf("Bidding on auction %s\n", AID);
 
