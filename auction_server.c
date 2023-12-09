@@ -136,8 +136,12 @@ int main(int argc, char *argv[]) {
 
                     //! This if chain supposedly works, but it hasn't been completely
                     //! tested.
-                    //? Each routine should have at least an argument so the buffer
-                    //? can be passed onto it
+                    //? Each routine should have the following parameters:
+                    //? - the buffer that has be passed for analysing the message
+                    //? - the sender_addr to know where the reponse should be sent to
+                    //? - the sender_addr_len that complements the sender_addr
+                    //? eg. login_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_len)
+                    //? Check the "else" clause for an example of how the responses should be sent
                     if(!strcmp(message_type, "LIN ")) {
                         // TODO Login handling routine
                     } else if (!strcmp(message_type, "LOU ")) {
