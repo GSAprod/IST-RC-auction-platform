@@ -75,6 +75,128 @@ void set_program_parameters(int argc, char* argv[]) {
     }
 }
 
+/***
+ * Receives an UDP message, processes it and sends its corresponding response
+ * depending on the type of message.
+ * 
+ * @return 0 if the request is processed correctly, -1 if there was an error
+ * processing the request  
+*/
+int handle_udp_request() {
+    int status;
+    char buffer[256], message_type[5];
+    struct sockaddr sender_addr;
+    socklen_t sender_addr_len = sizeof(sender_addr);
+
+    memset(buffer, 0, sizeof buffer);
+    status = server_udp_receive(buffer, 256, &sender_addr, &sender_addr_len);
+    if (status == -1) {
+        if (is_mode_verbose) printf("Failed to receive request.\n");
+        return -1;   // Go to the next mesage
+    }
+
+    // Get the first 4 characters of the message to determine its type
+    strncpy(message_type, buffer, 4);
+
+    //? Each routine should have the following parameters:
+    //? - the buffer that has be passed for analysing the message
+    //? - the sender_addr to know where the reponse should be sent to
+    //? - the sender_addr_len that complements the sender_addr
+    //? eg. login_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_len)
+    //? Check the "else" clause for an example of how the responses should be sent
+    if(!strcmp(message_type, "LIN ")) {
+        // TODO Login handling routine
+    } else if (!strcmp(message_type, "LOU ")) {
+        // TODO Logout handling routine
+    } else if (!strcmp(message_type, "UNR ")) {
+        // TODO Unregister handling routine
+    } else if (!strcmp(message_type, "LMA ")) {
+        // TODO List my auctions handling routine
+    } else if (!strcmp(message_type, "LMB ")) {
+        // TODO List my bids handling routine
+    } else if (!strcmp(message_type, "LST\n")) {
+        // TODO List all auctions handling routine
+    } else if (!strcmp(message_type, "SRC ")) {
+        // TODO Auction record handling routine
+    } else {
+        if(is_mode_verbose)
+            printf("Invalid UDP request made to server.\n");
+        
+        // The message is invalid in this case.
+        // Send response ERR (invalid request).
+        status = server_udp_send("ERR\n", &sender_addr, sender_addr_len);
+        if (status == -1) return -1;
+    }
+
+    return 0;
+}
+
+int handle_tcp_request() {
+    int socket_fd, status;
+    char buffer[8];
+    struct timeval timeout;
+
+    // Accept the new connection to the new socket
+    socket_fd = server_tcp_accept();
+    if (socket_fd == -1) {
+        if (is_mode_verbose)
+            printf("Failed to accept TCP connection.\n");
+        return -1;
+    }
+
+    // Set a timeout in case the socket is stuck on read/write
+    timeout.tv_sec = 5;
+    timeout.tv_usec = 0;
+    if(setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout,
+            sizeof timeout) < 0 ||
+            setsockopt(socket_fd, SOL_SOCKET, SO_SNDTIMEO, &timeout,
+            sizeof timeout) < 0) {
+        if (is_mode_verbose)
+            printf("Failed to establish TCP socket timeout.\n");
+        server_tcp_close(socket_fd);
+        return -1;
+    }
+
+    // Receive the first 4 characters of a TCP message and compare it
+    // against the list of actions available
+    memset(buffer, 0, sizeof buffer);
+    status = server_tcp_receive(socket_fd, buffer, 4);
+    if (status == -1) {
+        if (is_mode_verbose)
+            printf("Failed to receive TCP message. Closing connection.\n");
+        server_tcp_close(socket_fd);
+        return -1;
+    }
+
+    //? Each routine should have the following parameters:
+    //? - the socket_fd that represents the socket connection 
+    //? eg. login_handling(int socket_fd)
+    //? To read the parameters of the message, use server_tcp_receive with
+    //? the socket_fd passed into the routine.
+    //? Check the "else" clause for an example of how the responses should be sent
+    if(!strcmp(buffer, "OPA ")) {
+        // TODO Open auction handling routine
+    } else if(!strcmp(buffer, "CLS ")) {
+        // TODO Close auction handling routine
+    } else if(!strcmp(buffer, "SAS ")) {
+        // TODO Show asset handling routine
+    } else if(!strcmp(buffer, "BID ")) {
+        // TODO Bid handling routine
+    } else {
+        // Send an error response using TCP
+        server_tcp_send(socket_fd, "ERR\n", 4);
+        if (status == -1 && is_mode_verbose) {
+            printf("Failed to send TCP response. Closing connection.\n");
+            server_tcp_close(socket_fd);
+            return -1;
+        }
+    }
+
+    server_tcp_close(socket_fd);
+
+    return 0;
+}
+
 int main(int argc, char *argv[]) {
     int tcp_fd, udp_fd, out_fds;
     fd_set inputs, current_fds;
@@ -120,101 +242,11 @@ int main(int argc, char *argv[]) {
             default:
                 // If a message is received via UDP
                 if(FD_ISSET(udp_fd, &current_fds)) {
-                    int status;
-                    char buffer[256], message_type[5];
-                    struct sockaddr sender_addr;
-                    socklen_t sender_addr_len = sizeof(sender_addr);
-
-                    memset(buffer, 0, sizeof buffer);
-                    status = server_udp_receive(buffer, 256, &sender_addr, &sender_addr_len);
-                    if (status == -1) {
-                        if (is_mode_verbose) printf("Failed to receive request.\n");
-                        continue;   // Go to the next mesage
-                    }
-
-                    // Get the first 4 characters of the message to determine its type
-                    strncpy(message_type, buffer, 4);
-                    printf("\"%s\"\n", message_type);
-
-                    //! This if chain supposedly works, but it hasn't been completely
-                    //! tested.
-                    //? Each routine should have the following parameters:
-                    //? - the buffer that has be passed for analysing the message
-                    //? - the sender_addr to know where the reponse should be sent to
-                    //? - the sender_addr_len that complements the sender_addr
-                    //? eg. login_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_len)
-                    //? Check the "else" clause for an example of how the responses should be sent
-                    if(!strcmp(message_type, "LIN ")) {
-                        // TODO Login handling routine
-                    } else if (!strcmp(message_type, "LOU ")) {
-                        // TODO Logout handling routine
-                    } else if (!strcmp(message_type, "UNR ")) {
-                        // TODO Unregister handling routine
-                    } else if (!strcmp(message_type, "LMA ")) {
-                        // TODO List my auctions handling routine
-                    } else if (!strcmp(message_type, "LMB ")) {
-                        // TODO List my bids handling routine
-                    } else if (!strcmp(message_type, "LST\n")) {
-                        // TODO List all auctions handling routine
-                    } else if (!strcmp(message_type, "SRC ")) {
-                        // TODO Auction record handling routine
-                    } else {
-                        if(is_mode_verbose)
-                            printf("Invalid UDP request made to server.\n");
-                        
-                        // The message is invalid in this case.
-                        // Send response ERR (invalid request).
-                        status = server_udp_send("ERR\n", &sender_addr, sender_addr_len);
-                        if (status == -1) continue;
-                    }
-
-                    break;
+                    handle_udp_request();
                 }
-
                 // If a message is received via TCP
                 if(FD_ISSET(tcp_fd, &current_fds)) {
-                    int socket_fd, status;
-                    char buffer[256];
-                    struct timeval timeout;
-
-                    // Accept the new connection to the new socket
-                    socket_fd = server_tcp_accept();
-                    if (socket_fd == -1) {
-                        if (is_mode_verbose)
-                            printf("Failed to accept TCP connection.\n");
-                        continue;
-                    }
-
-                    // Set a timeout in case the socket is stuck on read/write
-                    timeout.tv_sec = 5;
-                    timeout.tv_usec = 0;
-                    if(setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout,
-                            sizeof timeout) < 0 ||
-                            setsockopt(socket_fd, SOL_SOCKET, SO_SNDTIMEO, &timeout,
-                            sizeof timeout) < 0) {
-                        if (is_mode_verbose)
-                            printf("Failed to establish TCP socket timeout.\n");
-                        server_tcp_close(socket_fd);
-                        continue;
-                    }
-
-                    // Receive the first 4 characters of a TCP message
-                    memset(buffer, 0, sizeof buffer);
-                    status = server_tcp_receive(socket_fd, buffer, 4);
-                    if (status == -1) {
-                        if (is_mode_verbose)
-                            printf("Failed to receive TCP message. Closing connection.\n");
-                        server_tcp_close(socket_fd);
-                        continue;
-                    }
-                    write(1, buffer, strlen(buffer));
-
-                    // Send a test TCP response
-                    server_tcp_send(socket_fd, "ERR\n", 4);
-                    if (status == -1 && is_mode_verbose) {
-                        printf("Failed to send TCP response. Closing connection.\n");
-                    }
-                    server_tcp_close(socket_fd);
+                    handle_tcp_request();
                 }
         }
     }
