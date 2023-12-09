@@ -132,6 +132,21 @@ int server_udp_receive(char* dest, int max_len, struct sockaddr* from_addr,
 int tcp_connect();
 
 /***
+ * Accepts a TCP connection and returns the corresponding socket.
+ * 
+ * @return the file descriptor of the socket if the connection
+ * is successful, -1 otherwise
+*/
+int server_tcp_accept();
+
+/***
+ * Closes a TCP socket connection. This function is only used for abstraction purposes.
+ * 
+ * @param socket_fd The file descriptor of the socket that will be closed
+*/
+void server_tcp_close(int socket_fd);
+
+/***
  * Sends a message using the TCp connection protocol, with the parameters
  * established in the variables udp_fd and udp_info.
  * 
@@ -144,6 +159,19 @@ int tcp_connect();
 int tcp_send(char* message, int message_len);
 
 /***
+ * Sends a message using the TCP connection protocol, to a certain socket
+ * described in its corresponding file descriptor
+ * 
+ * @param socket_fd The file descriptor of the socket where the message is sent to
+ * @param message The message to be sent
+ * @param message_len The length of the message that is sent
+ * 
+ * @return 0 if the mesage was sent, -1 if an error occurs 
+ * while sending the message
+*/
+int server_tcp_send(int socket_fd, char* message, int message_len);
+
+/***
  * Reads a certain number of bytes from the TCP socket.
  * 
  * @param dest The string where the received message is stored
@@ -153,5 +181,18 @@ int tcp_send(char* message, int message_len);
  * @return 0 if the message is received correctly, -1 otherwise
 */
 int tcp_receive(char* dest, int max_len);
+
+/***
+ * Reads a certain number of bytes from the TCP socket specified in the corresponding
+ * file descriptor.
+ * 
+ * @param socket_fd The socket where the message is received
+ * @param dest The string where the received message is stored
+ * @param max_len The maximum number of characters to be read
+ * @note The number of characters received may be smaller than specified
+ * 
+ * @return the length of the string received if the message is received correctly, -1 otherwise
+*/
+int server_tcp_receive(int socket_fd, char* dest, int max_len);
 
 #endif

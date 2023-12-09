@@ -1,4 +1,5 @@
 #include <sys/types.h>
+#include <sys/time.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -96,8 +97,9 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    FD_ZERO(&inputs);   // Clear input mask
-    FD_SET(udp_fd, &inputs);     // Set UDP channel on for listening to activity
+    FD_ZERO(&inputs);           // Clear input mask
+    FD_SET(udp_fd, &inputs);    // Set UDP channel on for listening to activity
+    FD_SET(tcp_fd, &inputs);    // Set TCP channel on for listening to activity
 
     while(1) {
         current_fds = inputs;   // Reload mask
@@ -157,6 +159,9 @@ int main(int argc, char *argv[]) {
                     } else if (!strcmp(message_type, "SRC ")) {
                         // TODO Auction record handling routine
                     } else {
+                        if(is_mode_verbose)
+                            printf("Invalid UDP request made to server.\n");
+                        
                         // The message is invalid in this case.
                         // Send response ERR (invalid request).
                         status = server_udp_send("ERR\n", &sender_addr, sender_addr_len);
@@ -165,7 +170,52 @@ int main(int argc, char *argv[]) {
 
                     break;
                 }
-                //? Add for TCP
+
+                // If a message is received via TCP
+                if(FD_ISSET(tcp_fd, &current_fds)) {
+                    int socket_fd, status;
+                    char buffer[256];
+                    struct timeval timeout;
+
+                    // Accept the new connection to the new socket
+                    socket_fd = server_tcp_accept();
+                    if (socket_fd == -1) {
+                        if (is_mode_verbose)
+                            printf("Failed to accept TCP connection.\n");
+                        continue;
+                    }
+
+                    // Set a timeout in case the socket is stuck on read/write
+                    timeout.tv_sec = 5;
+                    timeout.tv_usec = 0;
+                    if(setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout,
+                            sizeof timeout) < 0 ||
+                            setsockopt(socket_fd, SOL_SOCKET, SO_SNDTIMEO, &timeout,
+                            sizeof timeout) < 0) {
+                        if (is_mode_verbose)
+                            printf("Failed to establish TCP socket timeout.\n");
+                        server_tcp_close(socket_fd);
+                        continue;
+                    }
+
+                    // Receive the first 4 characters of a TCP message
+                    memset(buffer, 0, sizeof buffer);
+                    status = server_tcp_receive(socket_fd, buffer, 4);
+                    if (status == -1) {
+                        if (is_mode_verbose)
+                            printf("Failed to receive TCP message. Closing connection.\n");
+                        server_tcp_close(socket_fd);
+                        continue;
+                    }
+                    write(1, buffer, strlen(buffer));
+
+                    // Send a test TCP response
+                    server_tcp_send(socket_fd, "ERR\n", 4);
+                    if (status == -1 && is_mode_verbose) {
+                        printf("Failed to send TCP response. Closing connection.\n");
+                    }
+                    server_tcp_close(socket_fd);
+                }
         }
     }
 

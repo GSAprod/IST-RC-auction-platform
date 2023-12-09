@@ -279,7 +279,26 @@ int tcp_connect() {
 }
 
 /***
- * Sends a message using the TCp connection protocol, with the parameters
+ * Accepts a TCP connection and returns the corresponding socket.
+ * 
+ * @return the file descriptor of the socket if the connection
+ * is successful, -1 otherwise
+*/
+int server_tcp_accept() {
+    return accept(tcp_fd, NULL, NULL);
+}
+
+/***
+ * Closes a TCP socket connection. This function is only used for abstraction purposes.
+ * 
+ * @param socket_fd The file descriptor of the socket that will be closed
+*/
+void server_tcp_close(int socket_fd) {
+    close(socket_fd);
+}
+
+/***
+ * Sends a message using the TCP connection protocol, with the parameters
  * established in the variables udp_fd and udp_info.
  * 
  * @param message The message to be sent
@@ -289,12 +308,31 @@ int tcp_connect() {
  * while sending the message
 */
 int tcp_send(char* message, int message_len) {
+    // The only difference between this function and the server_tcp_send
+    // function is in the socket that is used to send the message.
+    // Since the client already pre-defines the socket, we can just call
+    // the server function with this socket to obtain the same response
+    return server_tcp_send(tcp_fd, message, message_len);
+}
+
+/***
+ * Sends a message using the TCP connection protocol, to a certain socket
+ * described in its corresponding file descriptor
+ * 
+ * @param socket_fd The file descriptor of the socket where the message is sent to
+ * @param message The message to be sent
+ * @param message_len The length of the message that is sent
+ * 
+ * @return 0 if the mesage was sent, -1 if an error occurs 
+ * while sending the message
+*/
+int server_tcp_send(int socket_fd, char* message, int message_len) {
     int bytesLeft, bytesWritten;
     char* ptr = message;
 
     bytesLeft=message_len;
     while(bytesLeft > 0) {
-        bytesWritten = write(tcp_fd, ptr, bytesLeft);
+        bytesWritten = write(socket_fd, ptr, bytesLeft);
         if(bytesWritten <= 0) return -1;
         bytesLeft -= bytesWritten;
         ptr += bytesWritten;
@@ -313,12 +351,31 @@ int tcp_send(char* message, int message_len) {
  * @return the length of the string received if the message is received correctly, -1 otherwise
 */
 int tcp_receive(char* dest, int max_len) {
+    // The only difference between this function and the server_tcp_receive
+    // function is in the socket that is used to receive the message.
+    // Since the client already pre-defines the socket, we can just call
+    // the server function with this socket to obtain the same response
+    return server_tcp_receive(tcp_fd, dest, max_len);
+}
+
+/***
+ * Reads a certain number of bytes from the TCP socket specified in the corresponding
+ * file descriptor.
+ * 
+ * @param socket_fd The socket where the message is received
+ * @param dest The string where the received message is stored
+ * @param max_len The maximum number of characters to be read
+ * @note The number of characters received may be smaller than specified
+ * 
+ * @return the length of the string received if the message is received correctly, -1 otherwise
+*/
+int server_tcp_receive(int socket_fd, char* dest, int max_len) {
     int bytesLeft, bytesRead;
     char* ptr = dest;
 
     bytesLeft = max_len;
     while(bytesLeft > 0) {
-        bytesRead = read(tcp_fd, ptr, bytesLeft);
+        bytesRead = read(socket_fd, ptr, bytesLeft);
         if(bytesRead == -1) {
             if (errno == ECONNRESET) return 0;
             return -1;
