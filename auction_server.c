@@ -13,6 +13,7 @@
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
+#include <ctype.h>
 #include "client_connections.h"
 #define DEFAULT_PORT "58057"
 
@@ -76,6 +77,85 @@ void set_program_parameters(int argc, char* argv[]) {
 }
 
 /***
+ * Logs in a user, or registers a brand new user if it doesn't exist in the database
+ * 
+ * @param message The UDP request that contains the info necessary for the login.
+ * It should have this format: 'LIN UID password'
+ * @param to_addr The address where the UDP message should be sent to
+ * @param to_addr_len The length of the address where the UDP message is sent
+*/
+void login_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_len) {
+    char* token;
+    char userID[7], userPasswd[9];
+    int status;
+
+    strtok(message, " ");    // This only gets the "LIN " string
+
+    // Get the user ID and verify if it's a 6-digit number
+    token = strtok(NULL, " ");
+    if (strlen(token) != 6) {
+        if (is_mode_verbose) printf("Invalid UDP request made to server.\n");
+        //? Should we check if the status is -1? If so, what should we do?
+        server_udp_send("ERR\n", to_addr, to_addr_len);
+        return;
+    }
+    for(int i = 0; i < 6; i++) {
+        char c = token[i];
+        if (!isdigit(c)) {
+            if (is_mode_verbose) printf("Invalid UDP request made to server.\n");
+            //? Same here
+            server_udp_send("ERR\n", to_addr, to_addr_len);
+            return;
+        }
+    }
+    strcpy(userID, token);
+
+    // Get the user password and verify if it's an 8-digit number
+    token = strtok(NULL, "\n");
+    if (strlen(token) != 8) {
+        if (is_mode_verbose) printf("Invalid UDP request made to server.\n");
+        //? Should we check if the status is -1? If so, what should we do?
+        server_udp_send("ERR\n", to_addr, to_addr_len);
+        return;
+    }
+    for(int i = 0; i < 8; i++) {
+        char c = token[i];
+        if (!isdigit(c) && !isalpha(c)) {
+            if (is_mode_verbose) printf("Invalid UDP request made to server.\n");
+            //? Same here
+            server_udp_send("ERR\n", to_addr, to_addr_len);
+            return;
+        }
+    }
+    strcpy(userPasswd, token);
+
+    //* status = Login(userID, userPasswd);
+    //! There is no return value for a new user (I'm using 2 in this case)
+    status = 2;    // TODO Delete this line
+    if (status == -1) {         //? I suppose -1 is when the credentials are incorrect
+        if (is_mode_verbose) 
+            printf("Login: Incorrect credentials given - user %s\n", userID);
+        //? Same here
+        server_udp_send("RLI NOK\n", to_addr, to_addr_len);
+        return;
+    } else if (status == 0 || status == 1) {
+        if (is_mode_verbose) 
+            printf("Login: User %s has logged in\n", userID);
+        //? Same here
+        server_udp_send("RLI OK\n", to_addr, to_addr_len);
+        return;
+    } else if (status == 2) {
+        if (is_mode_verbose) 
+            printf("Login: New user with ID %s has been registered.\n", userID);
+        //? Same here
+        server_udp_send("RLI REG\n", to_addr, to_addr_len);
+        return;
+    }
+
+    return;
+}
+
+/***
  * Receives an UDP message, processes it and sends its corresponding response
  * depending on the type of message.
  * 
@@ -105,7 +185,7 @@ int handle_udp_request() {
     //? eg. login_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_len)
     //? Check the "else" clause for an example of how the responses should be sent
     if(!strcmp(message_type, "LIN ")) {
-        // TODO Login handling routine
+        login_handling(buffer, &sender_addr, sender_addr_len);
     } else if (!strcmp(message_type, "LOU ")) {
         // TODO Logout handling routine
     } else if (!strcmp(message_type, "UNR ")) {
@@ -184,7 +264,7 @@ int handle_tcp_request() {
         // TODO Bid handling routine
     } else {
         // Send an error response using TCP
-        server_tcp_send(socket_fd, "ERR\n", 4);
+        status = server_tcp_send(socket_fd, "ERR\n", 4);
         if (status == -1 && is_mode_verbose) {
             printf("Failed to send TCP response. Closing connection.\n");
             server_tcp_close(socket_fd);
@@ -196,6 +276,7 @@ int handle_tcp_request() {
 
     return 0;
 }
+
 
 int main(int argc, char *argv[]) {
     int tcp_fd, udp_fd, out_fds;
