@@ -79,8 +79,11 @@ int main(int argc, char *argv[]) {
     fd_set inputs, current_fds;
     struct timeval timeout;
 
+    // Define verbose mode and port number according to the arguments used
+    // to run this program
     set_program_parameters(argc, argv);
 
+    // Set up both UDP and TCP connections
     udp_fd = server_setup_UDP(port);
     if (udp_fd == -1) {
         printf("Failure setting up server.\n");
@@ -102,31 +105,60 @@ int main(int argc, char *argv[]) {
         memset((void *) &timeout, 0, sizeof(timeout));
         timeout.tv_sec = 5;     // Set a timeout for every select function
 
+        // Wait on select until a timeout has occurred
         out_fds = select(FD_SETSIZE, &current_fds, (fd_set *) NULL, (fd_set *) NULL, (struct timeval *) &timeout);
 
         switch(out_fds) {
             case 0:
-                printf("Timeout.\n");
+                // Do nothing, no message was received in the last couple seconds.
                 break;
             case -1:
-                printf("Error on select.\n");
+                printf("Fatal error on select.\n");
                 exit(EXIT_FAILURE);
             default:
+                // If a message is received via UDP
                 if(FD_ISSET(udp_fd, &current_fds)) {
                     int status;
-                    char buffer[256];
+                    char buffer[256], message_type[5];
                     struct sockaddr sender_addr;
                     socklen_t sender_addr_len = sizeof(sender_addr);
 
                     memset(buffer, 0, sizeof buffer);
                     status = server_udp_receive(buffer, 256, &sender_addr, &sender_addr_len);
-                    if (status == -1) exit(EXIT_FAILURE);
-                    write(1, buffer, strlen(buffer));
+                    if (status == -1) {
+                        if (is_mode_verbose) printf("Failed to receive request.\n");
+                        continue;   // Go to the next mesage
+                    }
 
-                    status = server_udp_send("RLI OK\n", &sender_addr, sender_addr_len);
-                    if (status == -1) {perror("jfdghfdgh"); exit(EXIT_FAILURE);}
+                    // Get the first 4 characters of the message to determine its type
+                    strncpy(message_type, buffer, 4);
+                    printf("\"%s\"\n", message_type);
 
-                    //! Change this so the server can handle messages
+                    //! This if chain supposedly works, but it hasn't been completely
+                    //! tested.
+                    //? Each routine should have at least an argument so the buffer
+                    //? can be passed onto it
+                    if(!strcmp(message_type, "LIN ")) {
+                        // TODO Login handling routine
+                    } else if (!strcmp(message_type, "LOU ")) {
+                        // TODO Logout handling routine
+                    } else if (!strcmp(message_type, "UNR ")) {
+                        // TODO Unregister handling routine
+                    } else if (!strcmp(message_type, "LMA ")) {
+                        // TODO List my auctions handling routine
+                    } else if (!strcmp(message_type, "LMB ")) {
+                        // TODO List my bids handling routine
+                    } else if (!strcmp(message_type, "LST\n")) {
+                        // TODO List all auctions handling routine
+                    } else if (!strcmp(message_type, "SRC ")) {
+                        // TODO Auction record handling routine
+                    } else {
+                        // The message is invalid in this case.
+                        // Send response ERR (invalid request).
+                        status = server_udp_send("ERR\n", &sender_addr, sender_addr_len);
+                        if (status == -1) continue;
+                    }
+
                     break;
                 }
                 //? Add for TCP
