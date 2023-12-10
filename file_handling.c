@@ -4,8 +4,12 @@ int checkAssetFile(char * filename) {
 	struct stat filestat;
 	int ret_stat = stat(filename, &filestat);
 
-	if (ret_stat == -1 || filestat.st_size == 0) {
+	if (ret_stat == -1) {
 		return 0;
+	}
+
+	if (filestat.st_size == 0) {
+		return -1;
 	}
 
 	printf("File size: %ld\n", filestat.st_size);

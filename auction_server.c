@@ -315,7 +315,7 @@ void unregister_handling(char* message, struct sockaddr* to_addr, socklen_t to_a
             break;
         case 1:
             status = Unregister(userID);
-            if (status != 1) {
+            if (status != 0) {
                 if (is_mode_verbose) 
                     printf("Unregister: User %s is not logged in\n", userID);
                 //? Same here

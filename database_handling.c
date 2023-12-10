@@ -17,8 +17,10 @@ int CreateUser(char * UID, char * password) {
 
 	//Create user directory
 	sprintf(fileName, "ASDIR/USERS/%s", UID);
-	if (mkdir(fileName, 0777) == -1) {
-		return -1;
+	if (checkAssetFile(fileName) == 0) {
+		if (mkdir(fileName, 0777) == -1) {
+			return -1;
+		}
 	}
 	memset(fileName, 0, sizeof(fileName));
 
@@ -52,16 +54,20 @@ int CreateUser(char * UID, char * password) {
 
 	//Create hosted directory
 	sprintf(fileName, "ASDIR/USERS/%s/HOSTED", UID);
-	if (mkdir(fileName, 0777) == -1) {
-		return -1;
+	if (checkAssetFile(fileName) == 0) {
+		if (mkdir(fileName, 0777) == -1) {
+			return -1;
+		}
 	}
 
 	memset(fileName, 0, sizeof(fileName));
 
 	//Create bid directory
 	sprintf(fileName, "ASDIR/USERS/%s/BIDDED", UID);
-	if (mkdir(fileName, 0777) == -1) {
-		return -1;
+	if (checkAssetFile(fileName) == 0) {
+		if (mkdir(fileName, 0777) == -1) {
+			return -1;
+		}
 	}
 
 	return 0;
@@ -99,6 +105,17 @@ int Login(char * UID, char * password) {
 			if (strncmp(password_db, password, 8)) {
 				if (DEBUG) printf("Wrong password\n");
 				return -1;
+			}
+		} 
+		else {
+			// CREATES PASSWORD FILE
+			int ret = CreateUser(UID, password);
+			if (ret == 0) {
+				if (DEBUG) printf("User %s created\n", UID);
+				return 0;
+			} else {
+				if (DEBUG) printf("Error creating user %s\n", UID);
+				return -2;
 			}
 		}
 
@@ -138,7 +155,7 @@ int Logout(char * UID) {
 	if (DEBUG) printf("Logging out user %s\n", UID);
 
 	sprintf(fileName, "ASDIR/USERS/%s/%s_pass.txt", UID, UID);
-	if (checkAssetFile(fileName)) {
+	if (!checkAssetFile(fileName)) {
 		if (DEBUG) printf("User %s has no password defined\n", UID);
 		return -1;
 	}
@@ -147,12 +164,13 @@ int Logout(char * UID) {
 
 	memset(fileName, 0, sizeof(fileName));
 	sprintf(fileName, "ASDIR/USERS/%s/%s_login.txt", UID, UID);
-	if (checkAssetFile(fileName)) {
+	if (!checkAssetFile(fileName)) {
 		if (DEBUG) printf("User %s is not logged in\n", UID);
 		return 0;
 	}
 
 	if (DEBUG) printf("User %s is logged in\n", UID);
+
 	unlink(fileName);
 	return 1;
 }
@@ -163,7 +181,7 @@ int Unregister(char * UID) {
 	if (DEBUG) printf("Unregistering user %s\n", UID);
 
 	sprintf(fileName, "ASDIR/USERS/%s/%s_pass.txt", UID, UID);
-	if (checkAssetFile(fileName)) {
+	if (!checkAssetFile(fileName)) {
 		if (DEBUG) printf("User %s has no password defined\n", UID);
 		return -1;
 	}
@@ -172,7 +190,7 @@ int Unregister(char * UID) {
 
 	memset(fileName, 0, sizeof(fileName));
 	sprintf(fileName, "ASDIR/USERS/%s/%s_login.txt", UID, UID);
-	if (checkAssetFile(fileName)) {
+	if (!checkAssetFile(fileName)) {
 		if (DEBUG) printf("User %s isn't logged in\n", UID);
 		return -2;
 	}
@@ -891,14 +909,16 @@ int CheckUserPassword(char * UID, char * password) {
 		return -1;
 	}
 
-	if (fread(password_db, 1, strlen(password_db), file) <= 0) {
+	if (fread(password_db, 1, strlen(password), file) <= 0) {
 		if (DEBUG) printf("Error reading from pass file\n");
 		return -1;
 	}
 
 	fclose(file);
 
-	if (!strncmp(password_db, password, 8)) {
+	printf("\n%s : %s \n", password_db, password);
+
+	if (strncmp(password_db, password, 8)) {
 		if (DEBUG) printf("Wrong password\n");
 		return 0;
 	}
