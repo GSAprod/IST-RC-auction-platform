@@ -241,12 +241,99 @@ int CreateAuction(char * UID, char*name, char * asset_fname, char * start_value,
 	return 0;
 }
 
-int closeAuction(char * AID, char * UID) {
+int CloseAuction(char * AID, char * UID) {
 	if (DEBUG) printf("Closing auction %s\n", AID);
 
 	char fileName[256];
 
+	if (!CheckUserLogged(UID)) {
+		if (DEBUG) printf("User %s is not logged in\n", UID);
+		return -1; //* -1 = user not logged in
+	}
+	
+	if (DEBUG) printf("User %s is logged in\n", UID);
+
+
+
+
 	//TODO: Make close auction function
+	sprintf(fileName, "ASDIR/AUCTIONS/%s/START_%s.txt", AID, AID);
+	if (checkAssetFile(fileName)) {
+		if (DEBUG) printf("Auction %s exists\n", AID);
+	} else {
+		if (DEBUG) printf("Auction %s does not exist\n", AID);
+		return -2; //* -2 = auction does not exist
+	}
+
+	FILE * file = fopen(fileName, "r");
+	if (file == NULL) {
+		if (DEBUG) printf("Error opening file\n");
+		return -1;
+	}
+
+	char auction_info[256];
+
+	if (fread(auction_info, 1, 256, file) < 0) {
+		if (DEBUG) printf("Error reading from auction file\n");
+		return -1;
+	}
+
+	char UID[6];
+
+	char * token = strtok(auction_info, " ");
+	strcpy(UID, token);
+
+	if (strcmp(UID, UID)) {
+		if (DEBUG) printf("User %s is not the auction host\n", UID);
+		return -3; //* -3 = user is not the auction host
+	}
+
+	fclose(file);
+
+	memset(fileName, 0, sizeof(fileName));
+
+	sprintf(fileName, "ASDIR/AUCTIONS/%s/END_%s.txt", AID, AID);
+
+	if (checkAssetFile(fileName)) {
+		if (DEBUG) printf("Auction %s already ended\n", AID);
+		return -4; //* -4 = auction already ended
+	}
+
+
+	//end auction
+  file = fopen(fileName, "w");
+	if (file == NULL) {
+		if (DEBUG) printf("Error creating end file\n");
+		return -1;
+	}
+
+	time_t now;
+	struct tm * timeinfo;
+	char end_datetime[19];
+
+	memset(end_datetime, 0, sizeof(end_datetime));
+
+	time(&now);
+
+	timeinfo = gmtime(&now);
+
+	sprintf(end_datetime, "%04d-%02d-%02d %02d:%02d:%02d", timeinfo->tm_year + 1900, timeinfo->tm_mon + 1, timeinfo->tm_mday, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+
+	if (DEBUG) printf("End datetime: %s\n", end_datetime);
+
+	size_t written = fwrite(end_datetime, 1, strlen(end_datetime), file);
+	if (written != strlen(end_datetime)) {
+		if (DEBUG) printf("Error writing to end file\n");
+		fclose(file);
+		return -1;
+	}
+
+	// TODO: Finish calculating time elapsed
+	// written = fwrite(" ", 1, 1, file);
+
+	fclose(file);
+
+	return 0;
 }
 
 int Bid(char * AID, char * UID, char * value, char * datetime, char * fulltime) {

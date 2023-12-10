@@ -103,7 +103,7 @@ int LoadBid(char * pathname, struct BIDLIST bid);
  * 
  * @returns 1 if user is logged in, 0 if user is not logged in
 */
-int checkUserLogged(char * UID);
+int CheckUserLogged(char * UID);
 
 /*
  * Function that searches for the 50 highest bids on an auction
