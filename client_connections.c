@@ -80,9 +80,41 @@ int setup_UDP() {
 }
 
 /***
+ * Sets up the UDP socket connections for the server by setting the global descriptor udp_fd.
+ * and the addrinfo struct udp_info.
+ * 
+ * @param port The port the server is using for receiving messages
+ * @return udp_fd if the setup is successful, -1 otherwise
+ */
+int server_setup_UDP(char* port) {
+    int errcode;
+    struct addrinfo udp_hints;
+    
+    if(atoi(port) <= 0 || atoi(port) > 65535) return -1;
+
+    // UDP socket
+    udp_fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (udp_fd == -1) return -1;
+
+    memset(&udp_hints, 0, sizeof udp_hints);
+    udp_hints.ai_family = AF_INET;      // IPv4
+    udp_hints.ai_socktype = SOCK_DGRAM; // UDP socket
+    udp_hints.ai_flags = AI_PASSIVE;
+
+    errcode = getaddrinfo(NULL, port, &udp_hints, &udp_info);
+    if (errcode != 0) return -1;
+
+    errcode = bind(udp_fd, udp_info->ai_addr, udp_info->ai_addrlen);
+    if (errcode == -1) return -1;
+
+    return udp_fd;
+}
+
+/***
  * Sets up the TCP socket connections by setting the global descriptor tcp_fd, 
  * and the addrinfo struct tcp_info.
  * 
+ * @param port The port the server is using for receiving messages
  * @return 0 if the setup is successful, -1 otherwise
 */
 int setup_TCP() {
@@ -104,10 +136,41 @@ int setup_TCP() {
 }
 
 /***
+ * Sets up the TCP socket connections for a server by setting 
+ * the global descriptor tcp_fd, and the addrinfo struct tcp_info.
+ * 
+ * @return tcp_fd if the setup is successful, -1 otherwise
+*/
+int server_setup_TCP(char* port) {
+    int errcode;
+    struct addrinfo tcp_hints;
+
+    // TCP socket
+    tcp_fd = socket(AF_INET, SOCK_STREAM, 0); 
+    if (tcp_fd == -1) return -1;
+
+    memset(&tcp_hints, 0, sizeof tcp_hints);
+    tcp_hints.ai_family = AF_INET;      // IPv4
+    tcp_hints.ai_socktype = SOCK_STREAM; // UDP socket
+    tcp_hints.ai_flags = AI_PASSIVE;
+
+    errcode = getaddrinfo(NULL, port, &tcp_hints, &tcp_info);
+    if (errcode != 0) return -1;
+
+    errcode = bind(tcp_fd, tcp_info->ai_addr, tcp_info->ai_addrlen);
+    if (errcode == -1) return -1;
+
+    if (listen(tcp_fd, 5) == -1) return -1;
+
+    return tcp_fd;
+}
+
+/***
  * Frees up the UDP socket information structure. This function should be used
  * as the program closes.
 */
 void UDP_free() {
+    close(udp_fd);
     freeaddrinfo(udp_info);
 }
 
@@ -139,6 +202,25 @@ int udp_send(char* message) {
 }
 
 /***
+ * Sends a message using the UDP connection protocol to a specific address, 
+ * using the socket established in the variable udp_fd. 
+ * 
+ * @param message The message to be sent
+ * @param to_addr The address where the message should be sent to
+ * @param to_addr_len The length of the address where the message is sent
+ * 
+ * @return 0 if the mesage was sent, -1 if an error occurs 
+ * while sending the message
+*/
+int server_udp_send(char* message, struct sockaddr* to_addr, socklen_t to_addr_len) {
+    int n;
+    n = sendto(udp_fd, message, strlen(message), 0, to_addr, to_addr_len);
+    if (n == -1) return -1;
+
+    return 0;
+}
+
+/***
  * Reads a certain number of bytes from the UDP socket.
  * 
  * @param dest The string where the received message is stored
@@ -161,6 +243,28 @@ int udp_receive(char* dest, int max_len) {
 }
 
 /***
+ * Reads a certain number of bytes from the UDP socket and stores the address of the sender.
+ * 
+ * @param dest The string where the received message is stored
+ * @param max_len The maximum number of characters to be read
+ * @param from_addr The struct where the address of the sender is stored
+ * @param from_addr_len The struct where the length of the address of the sender is stored
+ * @note The number of characters received may be smaller than specified
+ * 
+ * @return 0 if the message is received correctly, -1 otherwise
+*/
+int server_udp_receive(char* dest, int max_len, struct sockaddr* from_addr,
+        socklen_t* from_addr_len) {
+    int n;
+
+    n = recvfrom(udp_fd, dest, max_len, 0,
+                 from_addr, from_addr_len);
+    if (n == -1) return -1;
+
+    return 0;
+}
+
+/***
  * Creates a connection onto the TCP socket
  * 
  * @return 0 if the connection is established, -1 if there was an error
@@ -175,7 +279,26 @@ int tcp_connect() {
 }
 
 /***
- * Sends a message using the TCp connection protocol, with the parameters
+ * Accepts a TCP connection and returns the corresponding socket.
+ * 
+ * @return the file descriptor of the socket if the connection
+ * is successful, -1 otherwise
+*/
+int server_tcp_accept() {
+    return accept(tcp_fd, NULL, NULL);
+}
+
+/***
+ * Closes a TCP socket connection. This function is only used for abstraction purposes.
+ * 
+ * @param socket_fd The file descriptor of the socket that will be closed
+*/
+void server_tcp_close(int socket_fd) {
+    close(socket_fd);
+}
+
+/***
+ * Sends a message using the TCP connection protocol, with the parameters
  * established in the variables udp_fd and udp_info.
  * 
  * @param message The message to be sent
@@ -185,12 +308,31 @@ int tcp_connect() {
  * while sending the message
 */
 int tcp_send(char* message, int message_len) {
+    // The only difference between this function and the server_tcp_send
+    // function is in the socket that is used to send the message.
+    // Since the client already pre-defines the socket, we can just call
+    // the server function with this socket to obtain the same response
+    return server_tcp_send(tcp_fd, message, message_len);
+}
+
+/***
+ * Sends a message using the TCP connection protocol, to a certain socket
+ * described in its corresponding file descriptor
+ * 
+ * @param socket_fd The file descriptor of the socket where the message is sent to
+ * @param message The message to be sent
+ * @param message_len The length of the message that is sent
+ * 
+ * @return 0 if the mesage was sent, -1 if an error occurs 
+ * while sending the message
+*/
+int server_tcp_send(int socket_fd, char* message, int message_len) {
     int bytesLeft, bytesWritten;
     char* ptr = message;
 
     bytesLeft=message_len;
     while(bytesLeft > 0) {
-        bytesWritten = write(tcp_fd, ptr, bytesLeft);
+        bytesWritten = write(socket_fd, ptr, bytesLeft);
         if(bytesWritten <= 0) return -1;
         bytesLeft -= bytesWritten;
         ptr += bytesWritten;
@@ -209,12 +351,31 @@ int tcp_send(char* message, int message_len) {
  * @return the length of the string received if the message is received correctly, -1 otherwise
 */
 int tcp_receive(char* dest, int max_len) {
+    // The only difference between this function and the server_tcp_receive
+    // function is in the socket that is used to receive the message.
+    // Since the client already pre-defines the socket, we can just call
+    // the server function with this socket to obtain the same response
+    return server_tcp_receive(tcp_fd, dest, max_len);
+}
+
+/***
+ * Reads a certain number of bytes from the TCP socket specified in the corresponding
+ * file descriptor.
+ * 
+ * @param socket_fd The socket where the message is received
+ * @param dest The string where the received message is stored
+ * @param max_len The maximum number of characters to be read
+ * @note The number of characters received may be smaller than specified
+ * 
+ * @return the length of the string received if the message is received correctly, -1 otherwise
+*/
+int server_tcp_receive(int socket_fd, char* dest, int max_len) {
     int bytesLeft, bytesRead;
     char* ptr = dest;
 
     bytesLeft = max_len;
     while(bytesLeft > 0) {
-        bytesRead = read(tcp_fd, ptr, bytesLeft);
+        bytesRead = read(socket_fd, ptr, bytesLeft);
         if(bytesRead == -1) {
             if (errno == ECONNRESET) return 0;
             return -1;
