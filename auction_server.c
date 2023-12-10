@@ -15,6 +15,7 @@
 #include <signal.h>
 #include <ctype.h>
 #include "client_connections.h"
+#include "database_handling.h"
 #define DEFAULT_PORT "58057"
 
 char port[8];
@@ -302,7 +303,7 @@ void list_myauctions_handling(char* message, struct sockaddr* to_addr, socklen_t
     char* token, *ptr;
     char userID[7], response[8192];
     int num_auctions;
-    //* struct AUCTIONLIST auction_list;
+    struct AUCTIONLIST * auction_list;
 
     strtok(message, " ");    // This only gets the "UNR " string
 
@@ -317,16 +318,14 @@ void list_myauctions_handling(char* message, struct sockaddr* to_addr, socklen_t
     strcpy(userID, token);
 
     // Check if the user is logged into the database
-    /*
-    *if (!checkUserLogged(userID)) {
-    *    if (is_mode_verbose) printf("List my auctions: User %d is not logged in.\n", userID);
-    *    //? Same here
-    *    server_udp_send("RMA NLG\n", to_addr, to_addr_len);
-    *    return;
-    *}
-    */
+    if (!checkUserLogged(userID)) {
+        if (is_mode_verbose) printf("List my auctions: User %d is not logged in.\n", userID);
+        //? Same here
+        server_udp_send("RMA NLG\n", to_addr, to_addr_len);
+        return;
+    }
 
-    //* num_auctions = GetAuctionsListByUser(userID, &auction_list);
+    num_auctions = GetAuctionsListByUser(userID, &auction_list);
     if (num_auctions == 0) {
         if (is_mode_verbose) printf("List my auctions: User %s has no ongoing auctions.\n", userID);
         //? Same here
@@ -338,6 +337,7 @@ void list_myauctions_handling(char* message, struct sockaddr* to_addr, socklen_t
     ptr = response + 6;
     for(int i = 0; i < num_auctions; i++) {
         // TODO Fazer string
+        
     }
 
     // TODO Enviar string

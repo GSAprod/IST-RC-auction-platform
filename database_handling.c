@@ -129,15 +129,24 @@ int Logout(char * UID) {
 
 	if (DEBUG) printf("Logging out user %s\n", UID);
 
+	sprintf(fileName, "ASDIR/USERS/%s/%s_pass.txt", UID, UID);
+	if (checkAssetFile(fileName)) {
+		if (DEBUG) printf("User %s has no password defined\n", UID);
+		return -1;
+	}
+
+	if (DEBUG) printf("User %s has password defined\n", UID);
+
+	memset(fileName, 0, sizeof(fileName));
 	sprintf(fileName, "ASDIR/USERS/%s/%s_login.txt", UID, UID);
 	if (checkAssetFile(fileName)) {
-		if (DEBUG) printf("User %s is logged in\n", UID);
-		unlink(fileName);
-		return 1;
-	} else {
 		if (DEBUG) printf("User %s is not logged in\n", UID);
 		return 0;
 	}
+
+	if (DEBUG) printf("User %s is logged in\n", UID);
+	unlink(fileName);
+	return 1;
 }
 
 int Unregister(char * UID) {
@@ -145,30 +154,23 @@ int Unregister(char * UID) {
 
 	if (DEBUG) printf("Unregistering user %s\n", UID);
 
-	sprintf(fileName, "ASDIR/USERS/%s", UID, UID);
-	if (checkAssetFile(fileName)) {
-		if (DEBUG) printf("User %s exists\n", UID);
-	} else {
-		if (DEBUG) printf("User %s does not exist\n", UID);
-	}
-
-	memset(fileName, 0, sizeof(fileName));
 	sprintf(fileName, "ASDIR/USERS/%s/%s_pass.txt", UID, UID);
 	if (checkAssetFile(fileName)) {
-		if (DEBUG) printf("User %s has password defined\n", UID);
-		unlink(fileName);
-	} else {
 		if (DEBUG) printf("User %s has no password defined\n", UID);
+		return -1;
 	}
+	
+	unlink(fileName);
 
 	memset(fileName, 0, sizeof(fileName));
 	sprintf(fileName, "ASDIR/USERS/%s/%s_login.txt", UID, UID);
 	if (checkAssetFile(fileName)) {
-		if (DEBUG) printf("User %s is logged in\n", UID);
-		unlink(fileName);
-	} else {
 		if (DEBUG) printf("User %s isn't logged in\n", UID);
+		return -2;
 	}
+
+	if (DEBUG) printf("User %s is logged in\n", UID);
+	unlink(fileName);
 
 	return 0;
 }
@@ -375,9 +377,32 @@ int Bid(char * AID, char * UID, char * value, char * datetime, char * fulltime) 
 	return 0;
 }
 
-int CheckUserLogged(char * UID) {
+int CheckUserLogged(char * UID, char * password) {
 	char fileName[256];
+	if (DEBUG) printf("Checking if user %s is logged in\n", UID);
 
+	sprintf(fileName, "ASDIR/USERS/%s/%s_pass.txt", UID, UID);
+	if (!checkAssetFile(fileName)) {
+		if (DEBUG) printf("User %s is not registered\n", UID);
+		return -1;
+	}
+
+	int ret = CheckUserPassword(UID, password);
+
+	switch (ret) {
+		case 0:
+			if (DEBUG) printf("Wrong password\n");
+			return -2;
+		case 1:
+			if (DEBUG) printf("Correct password\n");
+			break;
+		default:
+			if (DEBUG) printf("Error checking password\n");
+			return -2;
+	}
+
+	memset(fileName, 0, sizeof(fileName));
+	
 	sprintf(fileName, "ASDIR/USERS/%s/%s_login.txt", UID, UID);
 	if (checkAssetFile(fileName)) {
 		if (DEBUG) printf("User %s is logged in\n", UID);
@@ -796,4 +821,37 @@ int GetAuctionsListByUser(char * UID, struct AUCTIONLIST * auction_list) {
 	}
 	free(filelist);
 	return n_auctions;
+}
+
+int CheckUserPassword(char * UID, char * password) {
+	char fileName[256];
+
+	sprintf(fileName, "ASDIR/USERS/%s/%s_pass.txt", UID, UID);
+	if (checkAssetFile(fileName) <= 0) {
+		if (DEBUG) printf("User %s has no password defined\n", UID);
+		return -1;
+	}
+	
+	if (DEBUG) printf("User %s has password defined\n", UID);
+
+	char password_db[8];
+	FILE * file = fopen(fileName, "r");
+	if (file == NULL) {
+		if (DEBUG) printf("Error opening file\n");
+		return -1;
+	}
+
+	if (fread(password_db, 1, strlen(password_db), file) < 0) {
+		if (DEBUG) printf("Error reading from pass file\n");
+		return -1;
+	}
+
+	fclose(file);
+
+	if (!strncmp(password_db, password, 8)) {
+		if (DEBUG) printf("Wrong password\n");
+		return 0;
+	}
+
+	return 1;
 }

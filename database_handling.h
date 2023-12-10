@@ -58,7 +58,7 @@ int Logout(char * UID);
  * Function that unregisters a user
  * @param UID: User ID
  * 
- * @returns 0 if no error occurred, -1 if an error occurred
+ * @returns 0 if user is successfully unregistered, -1 if user is not registered, -2 if an error occurred
 */
 int Unregister(char * UID);
 
@@ -101,9 +101,9 @@ int LoadBid(char * pathname, struct BIDLIST bid);
  * Function that checks if a user is logged in
  * @param UID: User ID
  * 
- * @returns 1 if user is logged in, 0 if user is not logged in
+ * @returns 1 if user is logged in, 0 if user is not logged in, -1 if not registered, -2 if incorrect password
 */
-int CheckUserLogged(char * UID);
+int CheckUserLogged(char * UID, char * password);
 
 /*
  * Function that searches for the 50 highest bids on an auction
@@ -146,3 +146,12 @@ int GetAuctionsList(struct AUCTIONLIST * auction_list);
  * @returns number of auctions found
 */
 int GetAuctionsListByUser(char * UID, struct AUCTIONLIST * auction_list);
+
+/*
+ * Function that checks if user password is correct
+ * @param UID: User ID
+ * @param password: User password
+ * 
+ * @returns 1 if password is correct, 0 if password is incorrect, -1 if an error occurred
+ */
+int CheckUserPassword(char * UID, char * password);
