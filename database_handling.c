@@ -94,12 +94,13 @@ int Login(char * UID, char * password) {
 			}
 		}
 
+		// CREATES LOGIN FILE
 		memset(fileName, 0, sizeof(fileName));
 		sprintf(fileName, "ASDIR/USERS/%s/%s_login.txt", UID, UID);
 
 		if (checkAssetFile(fileName)) {
 			if (DEBUG) printf("User %s is logged in\n", UID);
-			return 0;
+			return 1;
 		} else {
 			if (DEBUG) printf("User %s is not logged in\n", UID);
 			FILE * file = fopen(fileName, "w");
@@ -111,8 +112,13 @@ int Login(char * UID, char * password) {
 		}
 		return 1;
 	} else {
-		if (createUser(UID, password)) {
-			//TODO: handle create user errors
+		if (DEBUG) printf("User %s does not exist\n", UID);
+		int ret = CreateUser(UID, password);
+		if (ret == 0) {
+			if (DEBUG) printf("User %s created\n", UID);
+			return 0;
+		} else {
+			if (DEBUG) printf("Error creating user %s\n", UID);
 			return -1;
 		}
 	}

@@ -42,7 +42,7 @@ int CreateUser(char * UID, char * password);
  * @param UID: User ID
  * @param password: User password
  * 
- * @returns 1 if user logs in, 0 if user is already logged in, -1 if an error occurred
+ * @returns 1 if user logs in, 0 if it's a new user, -1 if an error occurred
 */
 int Login(char * UID, char * password);
 
