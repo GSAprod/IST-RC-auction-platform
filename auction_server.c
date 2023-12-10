@@ -173,7 +173,7 @@ void login_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_l
 /***
  * Logs out a user, if it exists in the database
  * 
- * @param message The UDP request that contains the info necessary for the login.
+ * @param message The UDP request that contains the info necessary for the logout.
  * It should have this format: 'LOU UID password'
  * @param to_addr The address where the UDP message should be sent to
  * @param to_addr_len The length of the address where the UDP message is sent
@@ -233,7 +233,7 @@ void logout_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_
 /***
  * Unregisters a user, if it exists in the database and is logged in
  * 
- * @param message The UDP request that contains the info necessary for the login.
+ * @param message The UDP request that contains the info necessary for unregistering.
  * It should have this format: 'UNR UID password'
  * @param to_addr The address where the UDP message should be sent to
  * @param to_addr_len The length of the address where the UDP message is sent
@@ -288,6 +288,59 @@ void unregister_handling(char* message, struct sockaddr* to_addr, socklen_t to_a
     }
 
     return;
+}
+
+/***
+ * Sends back a list of auctions that a certain user has created
+ * 
+ * @param message The UDP request that contains the info necessary for the login.
+ * It should have this format: 'LMA UID'
+ * @param to_addr The address where the UDP message should be sent to
+ * @param to_addr_len The length of the address where the UDP message is sent
+*/
+void list_myauctions_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_len) {
+    char* token, *ptr;
+    char userID[7], response[8192];
+    int num_auctions;
+    //* struct AUCTIONLIST auction_list;
+
+    strtok(message, " ");    // This only gets the "UNR " string
+
+    // Get the user ID and verify if it's a 6-digit number
+    token = strtok(NULL, " ");
+    if (!verify_format_id(token)) {
+        if (is_mode_verbose) printf("Invalid UDP request made to server.\n");
+        //? Should we check if the status is -1? If so, what should we do?
+        server_udp_send("ERR\n", to_addr, to_addr_len);
+        return;
+    }
+    strcpy(userID, token);
+
+    // Check if the user is logged into the database
+    /*
+    *if (!checkUserLogged(userID)) {
+    *    if (is_mode_verbose) printf("List my auctions: User %d is not logged in.\n", userID);
+    *    //? Same here
+    *    server_udp_send("RMA NLG\n", to_addr, to_addr_len);
+    *    return;
+    *}
+    */
+
+    //* num_auctions = GetAuctionsListByUser(userID, &auction_list);
+    if (num_auctions == 0) {
+        if (is_mode_verbose) printf("List my auctions: User %s has no ongoing auctions.\n", userID);
+        //? Same here
+        server_udp_send("RMA NOK\n", to_addr, to_addr_len);
+        return;
+    }
+
+    strcpy(response, "RMA OK");
+    ptr = response + 6;
+    for(int i = 0; i < num_auctions; i++) {
+        // TODO Fazer string
+    }
+
+    // TODO Enviar string
 }
 
 /***
