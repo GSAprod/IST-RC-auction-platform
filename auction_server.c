@@ -77,6 +77,42 @@ void set_program_parameters(int argc, char* argv[]) {
 }
 
 /***
+ * Checks if the string given corresponds to a 6-digit user ID.
+ * 
+ * @param string The string to check
+ * @return 1 if the string given has the format of a user ID, 0 otherwise
+*/
+int verify_format_id(char* string) {
+    if (strlen(string) != 6)
+        return 0;
+
+    for(int i = 0; i < 6; i++) {
+        char c = string[i];
+        if (!isdigit(c)) return 0;
+    }
+
+    return 1;
+}
+
+/***
+ * Checks if the string given corresponds to an 8-digit alphanumeric password.
+ * 
+ * @param string The string to check
+ * @return 1 if the string given has the format of a password, 0 otherwise
+*/
+int verify_format_password(char* string) {
+    if (strlen(string) != 8)
+        return 0;
+
+    for(int i = 0; i < 8; i++) {
+        char c = string[i];
+        if (!isdigit(c) && !isalpha(c)) return 0;
+    }
+
+    return 1;
+}
+
+/***
  * Logs in a user, or registers a brand new user if it doesn't exist in the database
  * 
  * @param message The UDP request that contains the info necessary for the login.
@@ -93,39 +129,21 @@ void login_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_l
 
     // Get the user ID and verify if it's a 6-digit number
     token = strtok(NULL, " ");
-    if (strlen(token) != 6) {
+    if (!verify_format_id(token)) {
         if (is_mode_verbose) printf("Invalid UDP request made to server.\n");
         //? Should we check if the status is -1? If so, what should we do?
         server_udp_send("ERR\n", to_addr, to_addr_len);
         return;
-    }
-    for(int i = 0; i < 6; i++) {
-        char c = token[i];
-        if (!isdigit(c)) {
-            if (is_mode_verbose) printf("Invalid UDP request made to server.\n");
-            //? Same here
-            server_udp_send("ERR\n", to_addr, to_addr_len);
-            return;
-        }
     }
     strcpy(userID, token);
 
     // Get the user password and verify if it's an 8-digit number
     token = strtok(NULL, "\n");
-    if (strlen(token) != 8) {
+    if (!verify_format_password(token)) {
         if (is_mode_verbose) printf("Invalid UDP request made to server.\n");
         //? Should we check if the status is -1? If so, what should we do?
         server_udp_send("ERR\n", to_addr, to_addr_len);
         return;
-    }
-    for(int i = 0; i < 8; i++) {
-        char c = token[i];
-        if (!isdigit(c) && !isalpha(c)) {
-            if (is_mode_verbose) printf("Invalid UDP request made to server.\n");
-            //? Same here
-            server_udp_send("ERR\n", to_addr, to_addr_len);
-            return;
-        }
     }
     strcpy(userPasswd, token);
 
@@ -169,39 +187,21 @@ void logout_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_
 
     // Get the user ID and verify if it's a 6-digit number
     token = strtok(NULL, " ");
-    if (strlen(token) != 6) {
+    if (!verify_format_id(token)) {
         if (is_mode_verbose) printf("Invalid UDP request made to server.\n");
         //? Should we check if the status is -1? If so, what should we do?
         server_udp_send("ERR\n", to_addr, to_addr_len);
         return;
-    }
-    for(int i = 0; i < 6; i++) {
-        char c = token[i];
-        if (!isdigit(c)) {
-            if (is_mode_verbose) printf("Invalid UDP request made to server.\n");
-            //? Same here
-            server_udp_send("ERR\n", to_addr, to_addr_len);
-            return;
-        }
     }
     strcpy(userID, token);
 
     // Get the user password and verify if it's an 8-digit number
     token = strtok(NULL, "\n");
-    if (strlen(token) != 8) {
+    if (!verify_format_password(token)) {
         if (is_mode_verbose) printf("Invalid UDP request made to server.\n");
         //? Should we check if the status is -1? If so, what should we do?
         server_udp_send("ERR\n", to_addr, to_addr_len);
         return;
-    }
-    for(int i = 0; i < 8; i++) {
-        char c = token[i];
-        if (!isdigit(c) && !isalpha(c)) {
-            if (is_mode_verbose) printf("Invalid UDP request made to server.\n");
-            //? Same here
-            server_udp_send("ERR\n", to_addr, to_addr_len);
-            return;
-        }
     }
     strcpy(userPasswd, token);
 
@@ -225,6 +225,66 @@ void logout_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_
             printf("Logout: User %s has logged out.\n", userID);
         //? Same here
         server_udp_send("RLO OK\n", to_addr, to_addr_len);
+    }
+
+    return;
+}
+
+/***
+ * Unregisters a user, if it exists in the database and is logged in
+ * 
+ * @param message The UDP request that contains the info necessary for the login.
+ * It should have this format: 'UNR UID password'
+ * @param to_addr The address where the UDP message should be sent to
+ * @param to_addr_len The length of the address where the UDP message is sent
+*/
+void unregister_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_len) {
+    char* token;
+    char userID[7], userPasswd[9];
+    int status;
+
+    strtok(message, " ");    // This only gets the "UNR " string
+
+    // Get the user ID and verify if it's a 6-digit number
+    token = strtok(NULL, " ");
+    if (!verify_format_id(token)) {
+        if (is_mode_verbose) printf("Invalid UDP request made to server.\n");
+        //? Should we check if the status is -1? If so, what should we do?
+        server_udp_send("ERR\n", to_addr, to_addr_len);
+        return;
+    }
+    strcpy(userID, token);
+
+    // Get the user password and verify if it's an 8-digit number
+    token = strtok(NULL, "\n");
+    if (!verify_format_password(token)) {
+        if (is_mode_verbose) printf("Invalid UDP request made to server.\n");
+        //? Should we check if the status is -1? If so, what should we do?
+        server_udp_send("ERR\n", to_addr, to_addr_len);
+        return;
+    }
+    strcpy(userPasswd, token);
+
+    //* status = Unregister(userID);
+    //? Unregister function does not check the password, but neither does the statement
+    //? given by the teachers, so............
+    //! There is no return value for a non-registered user (I'm using -2 in this case)
+    status = 0;    // TODO Delete this line
+    if (status == -2) {         
+        if (is_mode_verbose) 
+            printf("Unregister: User %s not registered in database\n", userID);
+        //? Same here
+        server_udp_send("RUR UNR\n", to_addr, to_addr_len);
+    } else if (status == -1) {  //? I suppose -1 is when the user is not logged in
+        if (is_mode_verbose) 
+            printf("Unregister: User %s is not logged in\n", userID);
+        //? Same here
+        server_udp_send("RUR NOK\n", to_addr, to_addr_len);
+    } else if (status == 0) {
+        if (is_mode_verbose) 
+            printf("Unregister: User %s has logged out.\n", userID);
+        //? Same here
+        server_udp_send("RUR OK\n", to_addr, to_addr_len);
     }
 
     return;
@@ -264,7 +324,7 @@ int handle_udp_request() {
     } else if (!strcmp(message_type, "LOU ")) {
         logout_handling(buffer, &sender_addr, sender_addr_len);
     } else if (!strcmp(message_type, "UNR ")) {
-        // TODO Unregister handling routine
+        unregister_handling(buffer, &sender_addr, sender_addr_len);
     } else if (!strcmp(message_type, "LMA ")) {
         // TODO List my auctions handling routine
     } else if (!strcmp(message_type, "LMB ")) {
