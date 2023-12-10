@@ -42,6 +42,12 @@ int CreateUser(char * UID, char * password) {
 	//Create login file
 	sprintf(fileName, "ASDIR/USERS/%s/%s_login.txt", UID, UID);
 
+	file = fopen(fileName, "w");
+	if (file == NULL) {
+		return -1;
+	}
+	fclose(file);
+
 	memset(fileName, 0, sizeof(fileName));
 
 	//Create hosted directory
@@ -83,14 +89,14 @@ int Login(char * UID, char * password) {
 				return -2;
 			}
 
-			if (fread(password_db, 1, strlen(password_db), file) <= 0) {
+			if (fread(password_db, 1, strlen(password), file) <= 0) {
 				if (DEBUG) printf("Error reading from pass file\n");
 				return -2;
 			}
 
 			fclose(file);
 
-			if (!strncmp(password_db, password, 8)) {
+			if (strncmp(password_db, password, 8)) {
 				if (DEBUG) printf("Wrong password\n");
 				return -1;
 			}

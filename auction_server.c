@@ -676,6 +676,7 @@ int main(int argc, char *argv[]) {
     // Define verbose mode and port number according to the arguments used
     // to run this program
     set_program_parameters(argc, argv);
+    InitDatabase();
 
     // Set up both UDP and TCP connections
     udp_fd = server_setup_UDP(port);

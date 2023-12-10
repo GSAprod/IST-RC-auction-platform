@@ -5,8 +5,10 @@ int checkAssetFile(char * filename) {
 	int ret_stat = stat(filename, &filestat);
 
 	if (ret_stat == -1 || filestat.st_size == 0) {
-		return -1;
+		return 0;
 	}
+
+	printf("File size: %ld\n", filestat.st_size);
 
 	return filestat.st_size;
 }

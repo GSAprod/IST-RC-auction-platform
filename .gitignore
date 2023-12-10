@@ -34,3 +34,5 @@
 .vscode/
 auction_client
 auction_server
+
+ASDIR/
