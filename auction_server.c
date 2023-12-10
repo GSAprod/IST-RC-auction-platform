@@ -148,25 +148,35 @@ void login_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_l
     }
     strcpy(userPasswd, token);
 
-    //* status = Login(userID, userPasswd);
-    //! There is no return value for a new user (I'm using 2 in this case)
-    status = 2;    // TODO Delete this line
-    if (status == -1) {         //? I suppose -1 is when the credentials are incorrect
+    status = Login(userID, userPasswd);
+    if (status == -2) {
+        // In this case, there would be an error when a login attempt is made.
+        if (is_mode_verbose) 
+            printf("Login: A error occurred when user %s was logging in.\n", userID);
+        //? Same here
+        server_udp_send("ERR\n", to_addr, to_addr_len);
+
+    } else if (status == -1) {
+        // In this case, the user and password don't match
         if (is_mode_verbose) 
             printf("Login: Incorrect credentials given - user %s\n", userID);
         //? Same here
         server_udp_send("RLI NOK\n", to_addr, to_addr_len);
-    } else if (status == 0 || status == 1) {
-        if (is_mode_verbose) 
-            printf("Login: User %s has logged in\n", userID);
-        //? Same here
-        server_udp_send("RLI OK\n", to_addr, to_addr_len);
-    } else if (status == 2) {
+
+    } else if (status == 0) {
+        // In this case, a new user is created in the database
         if (is_mode_verbose) 
             printf("Login: New user with ID %s has been registered.\n", userID);
         //? Same here
         server_udp_send("RLI REG\n", to_addr, to_addr_len);
-    }
+
+    } else if (status == 1) {
+        // In this case, the login is successful
+        if (is_mode_verbose) 
+            printf("Login: User %s has logged in\n", userID);
+        //? Same here
+        server_udp_send("RLI OK\n", to_addr, to_addr_len);
+    } 
 
     return;
 }
@@ -206,28 +216,44 @@ void logout_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_
     }
     strcpy(userPasswd, token);
 
-    //* status = Logout(userID);
-    //? Logout function does not check the password, but neither does the statement
-    //? given by the teachers so............
-    //! There is no return value for a non-registered user (I'm using -1 in this case)
-    status = 1;    // TODO Delete this line
-    if (status == -1) {         //? I suppose -1 is when the credentials are incorrect
-        if (is_mode_verbose) 
-            printf("Logout: User %s not registered in database\n", userID);
-        //? Same here
-        server_udp_send("RLO UNR\n", to_addr, to_addr_len);
-    } else if (status == 0) {
-        if (is_mode_verbose) 
-            printf("Logout: User %s is not logged in\n", userID);
-        //? Same here
-        server_udp_send("RLO NOK\n", to_addr, to_addr_len);
-    } else if (status == 1) {
-        if (is_mode_verbose) 
-            printf("Logout: User %s has logged out.\n", userID);
-        //? Same here
-        server_udp_send("RLO OK\n", to_addr, to_addr_len);
+    // Check if the user is logged in before logging out
+    status = CheckUserLogged(userID, userPasswd);
+    switch (status) {
+        case -2:
+            if (is_mode_verbose) 
+                printf("Logout: Invalid password or password error for user %s\n", userID);
+            //? Same here
+            server_udp_send("ERR\n", to_addr, to_addr_len);
+            break;
+        case -1:
+            if (is_mode_verbose) 
+                printf("Logout: User %s not registered in database\n", userID);
+            //? Same here
+            server_udp_send("RLO UNR\n", to_addr, to_addr_len);
+            break;
+        case 0:
+            if (is_mode_verbose) 
+                printf("Logout: User %s is not logged in\n", userID);
+            //? Same here
+            server_udp_send("RLO NOK\n", to_addr, to_addr_len);
+            break;
+        case 1:
+            status = Logout(userID);
+            if (status != 1) {
+                if (is_mode_verbose) 
+                    printf("Logout: User %s is not logged in %s\n", userID);
+                //? Same here
+                server_udp_send("RLO NOK\n", to_addr, to_addr_len);
+                break;
+            } else {
+                if (is_mode_verbose) 
+                    printf("Logout: Invalid password or password error for user %s\n", userID);
+                //? Same here
+                server_udp_send("RLO OK\n", to_addr, to_addr_len);
+                break;
+            }
     }
-
+    
     return;
 }
 
@@ -266,12 +292,15 @@ void unregister_handling(char* message, struct sockaddr* to_addr, socklen_t to_a
     }
     strcpy(userPasswd, token);
 
-    //* status = Unregister(userID);
-    //? Unregister function does not check the password, but neither does the statement
-    //? given by the teachers, so............
+    status = Unregister(userID);
     //! There is no return value for a non-registered user (I'm using -2 in this case)
     status = 0;    // TODO Delete this line
-    if (status == -2) {         
+    if (status == -2) {
+        if (is_mode_verbose) 
+            printf("Unregister: There was an error while unregistering user %s\n", userID);
+        //? Same here
+        server_udp_send("ERR\n", to_addr, to_addr_len);
+    } else if (status == -1) {         
         if (is_mode_verbose) 
             printf("Unregister: User %s not registered in database\n", userID);
         //? Same here
