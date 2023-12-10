@@ -78,12 +78,12 @@ int Login(char * UID, char * password) {
 			FILE * file = fopen(fileName, "r");
 			if (file == NULL) {
 				if (DEBUG) printf("Error opening file\n");
-				return -1;
+				return -2;
 			}
 
 			if (fread(password_db, 1, strlen(password_db), file) < 0) {
 				if (DEBUG) printf("Error reading from pass file\n");
-				return -1;
+				return -2;
 			}
 
 			fclose(file);
@@ -106,7 +106,7 @@ int Login(char * UID, char * password) {
 			FILE * file = fopen(fileName, "w");
 			if (file == NULL) {
 				if (DEBUG) printf("Error opening file\n");
-				return -1;
+				return -2;
 			}
 			fclose(file);
 		}
@@ -119,7 +119,7 @@ int Login(char * UID, char * password) {
 			return 0;
 		} else {
 			if (DEBUG) printf("Error creating user %s\n", UID);
-			return -1;
+			return -2;
 		}
 	}
 }
