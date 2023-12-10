@@ -1,3 +1,6 @@
+#ifndef DATABASE_HANDLING_H
+#define DATABASE_HANDLING_H
+
 #include <stdio.h>
 #include <dirent.h>
 #include <stdlib.h>
@@ -21,7 +24,7 @@ typedef struct AUCTIONLIST {
 	int active;
 } AUCTIONLIST[];
 
-int DEBUG = 1; 
+//int DEBUG = 1; 
 
 /*
  * Function that initializes the database. If db is already initialized, it does nothing
@@ -129,7 +132,7 @@ int GetBidList(char * AID, struct BIDLIST * bidlist);
  * 
  * @returns 1 if auction ended, 0 if auction did not end, -1 if an error occured
 */
-int checkIfAuctionEnded(char * AID);
+//int checkIfAuctionEnded(char * AID);
 
 /*
  * Function that gets infor for a specific auction
@@ -156,6 +159,15 @@ int GetAuctionsList(struct AUCTIONLIST * auction_list);
 */
 int GetAuctionsListByUser(char * UID, struct AUCTIONLIST * auction_list);
 
+/***
+ * Function that gets all the auctions bidded by a user
+ * @param UID: User ID
+ * @param auction_list: pointer to where the auction list will be stored (MUST NOT be allocated. MUST be freed after use)
+ * 
+ * @returns number of auctions found
+*/
+int GetAuctionsListByUserBidded(char * UID, struct AUCTIONLIST * auction_list);
+
 /*
  * Function that checks if user password is correct
  * @param UID: User ID
@@ -164,3 +176,5 @@ int GetAuctionsListByUser(char * UID, struct AUCTIONLIST * auction_list);
  * @returns 1 if password is correct, 0 if password is incorrect, -1 if an error occurred
  */
 int CheckUserPassword(char * UID, char * password);
+
+#endif

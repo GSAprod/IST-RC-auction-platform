@@ -1,5 +1,7 @@
 #include "database_handling.h"
 
+int DEBUG = 1;
+
 void InitDatabase() {
 	struct stat filestat;
 	int ret_stat = stat("ASDIR", &filestat);
@@ -64,7 +66,7 @@ int Login(char * UID, char * password) {
 
 	if (DEBUG) printf("Logging in user %s\n", UID);
 
-	sprintf(fileName, "ASDIR/USERS/%s", UID, UID);
+	sprintf(fileName, "ASDIR/USERS/%s", UID);
 	if (checkAssetFile(fileName)) {
 		if (DEBUG) printf("User %s exists\n", UID);
 
@@ -81,7 +83,7 @@ int Login(char * UID, char * password) {
 				return -2;
 			}
 
-			if (fread(password_db, 1, strlen(password_db), file) < 0) {
+			if (fread(password_db, 1, strlen(password_db), file) <= 0) {
 				if (DEBUG) printf("Error reading from pass file\n");
 				return -2;
 			}
@@ -176,12 +178,13 @@ int Unregister(char * UID) {
 }
 
 int CreateAuction(char * UID, char*name, char * asset_fname, char * start_value, char * time_active, char * start_datetime, char * start_fulltime) {
-	if (DEBUG) printf("Creating auction %s\n");
+	if (DEBUG) printf("Creating auction\n");
 
 	char fileName[256];
 
 	//Generate AID
-	char AID[3];
+	char AID[4];
+	memset(AID, 0, sizeof(AID));
 	int i = 0;
 	for (i = 0; i < 1000; i++) {
 		sprintf(fileName, "ASDIR/AUCTIONS/%03d", i);
@@ -248,7 +251,7 @@ int CreateAuction(char * UID, char*name, char * asset_fname, char * start_value,
 	
 	return 0;
 }
-
+/*
 int CloseAuction(char * AID, char * UID) {
 	if (DEBUG) printf("Closing auction %s\n", AID);
 
@@ -271,17 +274,17 @@ int CloseAuction(char * AID, char * UID) {
 
 	char auction_info[256];
 
-	if (fread(auction_info, 1, 256, file) < 0) {
+	if (fread(auction_info, 1, 256, file) <= 0) {
 		if (DEBUG) printf("Error reading from auction file\n");
 		return -4;
 	}
 
-	char UID[6];
+	char db_UID[6];
 
 	char * token = strtok(auction_info, " ");
-	strcpy(UID, token);
+	strcpy(db_UID, token);
 
-	if (strcmp(UID, UID)) {
+	if (strcmp(db_UID, UID)) {
 		if (DEBUG) printf("User %s is not the auction host\n", UID);
 		return -2; //* -2 = user is not the auction host
 	}
@@ -333,6 +336,7 @@ int CloseAuction(char * AID, char * UID) {
 
 	return 0;
 }
+*/
 
 int Bid(char * AID, char * UID, char * value, char * datetime, char * fulltime) {
 	if (DEBUG) printf("Bidding on auction %s\n", AID);
@@ -342,7 +346,7 @@ int Bid(char * AID, char * UID, char * value, char * datetime, char * fulltime) 
 	//TODO: CHECK IF BID VALUE IS HIGHER THAN CURRENT HIGHEST BID
 
 	//Create bid file
-	sprintf(fileName, "ASDIR/AUCTIONS/%s/BIDS/%s.txt", AID, AID, UID);
+	sprintf(fileName, "ASDIR/AUCTIONS/%s/BIDS/%s.txt", AID, value);
 	FILE * file = fopen(fileName, "w");
 	if (file == NULL) {
 		if (DEBUG) printf("Error creating bid file\n");
@@ -363,6 +367,18 @@ int Bid(char * AID, char * UID, char * value, char * datetime, char * fulltime) 
 
 	free(bid_info);
 	fclose(file);
+
+	memset(fileName, 0, sizeof(fileName));
+
+	//Add bid to user's bidded directory
+	sprintf(fileName, "ASDIR/USERS/%s/BIDDED/%s.txt", UID, AID);
+	file = fopen(fileName, "w");
+	if (file == NULL) {
+		if (DEBUG) printf("Error creating bid file\n");
+		return -1;
+	}
+	fclose(file);
+
 
 	return 0;
 }
@@ -414,7 +430,7 @@ int LoadBid(char * pathname, struct BIDLIST bid) {
 
 	char bid_info[64];
 
-	if (fread(bid_info, 1, 64, file) < 0) {
+	if (fread(bid_info, 1, 64, file) <= 0) {
 		if (DEBUG) printf("Error reading from bid file\n");
 		return -1;
 	}
@@ -435,13 +451,13 @@ int LoadBid(char * pathname, struct BIDLIST bid) {
 	return 0;
 }
 
+/*
 int GetBidList(char * AID, struct BIDLIST * bidlist) {
-	char fileName[256];
 
 	struct dirent **filelist;
 	int n_entries, n_bids, len;
 	char dirname[32];
-	char * pathname[64];
+	char pathname[64];
 
 	sprintf(dirname, "ASDIR/AUCTIONS/%s/BIDS", AID);
 
@@ -481,7 +497,7 @@ int checkIfAuctionEnded(char * AID) {
 	if (DEBUG) printf("Checking if auction %s ended\n", AID);
 
 	char fileName[256];
-	sprintf(fileName, "ASDIR/AUCTIONS/%s/", AID, AID);
+	sprintf(fileName, "ASDIR/AUCTIONS/%s", AID);
 
 	if (checkAssetFile(fileName)) {
 		if (DEBUG) printf("Auction %s exists\n", AID);
@@ -497,7 +513,7 @@ int checkIfAuctionEnded(char * AID) {
 		if (DEBUG) printf("Auction %s ended\n", AID);
 		return 1;
 	} else {
-		if (DEBUG) printf("Checking file time:\n", AID);
+		if (DEBUG) printf("Checking file time:\n");
 		
 		memset(fileName, 0, sizeof(fileName));
 		sprintf(fileName, "ASDIR/AUCTIONS/%s/START_%s.txt", AID, AID);
@@ -516,7 +532,7 @@ int checkIfAuctionEnded(char * AID) {
 		memset(start_datetime, 0, sizeof(start_datetime));
 		memset(time_to_end, 0, sizeof(time_to_end));
 
-		if (fread(file_data, 1, 19, file) < 0) {
+		if (fread(file_data, 1, 19, file) <= 0) {
 			if (DEBUG) printf("Error reading from start file\n");
 			return -1;
 		}
@@ -656,6 +672,7 @@ int checkIfAuctionEnded(char * AID) {
 		}
 	}
 }
+*/
 
 int GetAuctionInfo(char * AID) {
 	char fileName[256];
@@ -676,7 +693,7 @@ int GetAuctionInfo(char * AID) {
 
 	memset(auction_info, 0, sizeof(auction_info));
 
-	if (fread(auction_info, 1, 256, file) < 0) {
+	if (fread(auction_info, 1, 256, file) <= 0) {
 		if (DEBUG) printf("Error reading from auction file\n");
 		return -1;
 	}
@@ -710,6 +727,7 @@ int GetAuctionInfo(char * AID) {
 
 	fclose(file);
 
+	/*
 	struct  BIDLIST * bidlist;
 
 	int n_bids = GetBidList(AID, bidlist);
@@ -732,6 +750,7 @@ int GetAuctionInfo(char * AID) {
 	} else {
 		if (DEBUG) printf("Error checking if auction %s ended\n", AID);
 	}
+	*/
 	return 0;
 }
 
@@ -739,7 +758,7 @@ int GetAuctionsList(struct AUCTIONLIST * auction_list) {
 	struct dirent **filelist;
 	int n_entries, n_auctions, len;
 	char dirname[32];
-	char * pathname[64];
+	char pathname[512];
 
 	sprintf(dirname, "ASDIR/AUCTIONS");
 
@@ -778,7 +797,7 @@ int GetAuctionsListByUser(char * UID, struct AUCTIONLIST * auction_list) {
 	struct dirent **filelist;
 	int n_entries, n_auctions, len;
 	char dirname[32];
-	char * pathname[64];
+	char pathname[512];
 
 	sprintf(dirname, "ASDIR/USERS/%s/HOSTED", UID);
 
@@ -813,6 +832,41 @@ int GetAuctionsListByUser(char * UID, struct AUCTIONLIST * auction_list) {
 	return n_auctions;
 }
 
+int GetAuctionsListByUserBidded(char * UID, struct AUCTIONLIST * auction_list) {
+	struct dirent **filelist;
+	int n_entries, n_auctions, len;
+	char dirname[32];
+
+	sprintf(dirname, "ASDIR/USERS/%s/BIDDED", UID);
+
+	n_entries = scandir(dirname, &filelist, 0, alphasort);
+
+	if (n_entries <= 0) {
+		if (DEBUG) printf("Error scanning directory\n");
+		return -1; //! USER WAS NOT LOGGED IN
+	}
+
+	n_auctions = 0;
+
+	auction_list = malloc((n_entries) * sizeof(struct AUCTIONLIST));
+
+	int i = 0;
+
+	for (i = 0; i < n_entries; i++) {
+		len = strlen(filelist[n_auctions]->d_name);
+		if (DEBUG) printf("File name: %s\n", filelist[n_auctions]->d_name);
+		if (len == 3) {
+			strcpy(auction_list[n_auctions].AID, filelist[n_auctions]->d_name);
+			auction_list[n_auctions].active = 1; //! checkIfAuctionEnded(auction_list[n_auctions].AID) ? 1 : 0;
+			if (DEBUG) printf("AID: %s\n", auction_list[n_auctions].AID);
+			++n_auctions;
+		}
+		free(filelist[n_entries]);
+	}
+	free(filelist);
+	return n_auctions;
+}
+
 int CheckUserPassword(char * UID, char * password) {
 	char fileName[256];
 
@@ -831,7 +885,7 @@ int CheckUserPassword(char * UID, char * password) {
 		return -1;
 	}
 
-	if (fread(password_db, 1, strlen(password_db), file) < 0) {
+	if (fread(password_db, 1, strlen(password_db), file) <= 0) {
 		if (DEBUG) printf("Error reading from pass file\n");
 		return -1;
 	}

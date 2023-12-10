@@ -241,7 +241,7 @@ void logout_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_
             status = Logout(userID);
             if (status != 1) {
                 if (is_mode_verbose) 
-                    printf("Logout: User %s is not logged in %s\n", userID);
+                    printf("Logout: User %s is not logged in\n", userID);
                 //? Same here
                 server_udp_send("RLO NOK\n", to_addr, to_addr_len);
                 break;
@@ -317,7 +317,7 @@ void unregister_handling(char* message, struct sockaddr* to_addr, socklen_t to_a
             status = Unregister(userID);
             if (status != 1) {
                 if (is_mode_verbose) 
-                    printf("Unregister: User %s is not logged in %s\n", userID);
+                    printf("Unregister: User %s is not logged in\n", userID);
                 //? Same here
                 server_udp_send("RUR NOK\n", to_addr, to_addr_len);
                 break;
@@ -344,7 +344,6 @@ void list_myauctions_handling(char* message, struct sockaddr* to_addr, socklen_t
     char* token, *ptr;
     char userID[7], response[8192];
     int num_auctions;
-    struct AUCTIONLIST * auction_list;
 
     strtok(message, " ");    // This only gets the "UNR " string
 
@@ -358,19 +357,18 @@ void list_myauctions_handling(char* message, struct sockaddr* to_addr, socklen_t
     }
     strcpy(userID, token);
 
-    // Check if the user is logged into the database
-    if (!checkUserLogged(userID)) {
-        if (is_mode_verbose) printf("List my auctions: User %d is not logged in.\n", userID);
-        //? Same here
+    struct AUCTIONLIST * auction_list;
+    num_auctions = GetAuctionsListByUserBidded(userID, auction_list);
+    if (num_auctions == -1) {
+        if (is_mode_verbose) printf("List my auctions: User %s is not logged in.\n", userID);
         server_udp_send("RMA NLG\n", to_addr, to_addr_len);
         return;
     }
-
-    num_auctions = GetAuctionsListByUser(userID, &auction_list);
     if (num_auctions == 0) {
         if (is_mode_verbose) printf("List my auctions: User %s has no ongoing auctions.\n", userID);
         //? Same here
         server_udp_send("RMA NOK\n", to_addr, to_addr_len);
+        free(auction_list);
         return;
     }
 
@@ -385,8 +383,166 @@ void list_myauctions_handling(char* message, struct sockaddr* to_addr, socklen_t
     }
     strcpy(ptr, "\n");
 
+    free(auction_list);
+
     // TODO Enviar string
     server_udp_send(response, to_addr, to_addr_len);
+}
+
+void list_mybids_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_len) {
+    char* token, *ptr;
+    char userID[7], response[8192];
+    int num_auctions;
+    struct AUCTIONLIST * bid_list;
+
+    strtok(message, " ");    // This only gets the "UNR " string
+
+    // Get the user ID and verify if it's a 6-digit number
+    token = strtok(NULL, " ");
+    if (!verify_format_id(token)) {
+        if (is_mode_verbose) printf("Invalid UDP request made to server.\n");
+        //? Should we check if the status is -1? If so, what should we do?
+        server_udp_send("ERR\n", to_addr, to_addr_len);
+        return;
+    }
+    strcpy(userID, token);
+
+    // Check if the user is logged into the database
+
+    num_auctions = GetAuctionsListByUserBidded(userID, bid_list);
+    if (num_auctions == -1) {
+        if (is_mode_verbose) printf("List my bids: User %s is not logged in.\n", userID);
+        //? Same here
+        server_udp_send("RMB NLG\n", to_addr, to_addr_len);
+        return;
+    }
+    if (num_auctions == 0) {
+        if (is_mode_verbose) printf("List my bids: User %s has no ongoing bids.\n", userID);
+        //? Same here
+        server_udp_send("RMB NOK\n", to_addr, to_addr_len);
+        free(bid_list);
+        return;
+    }
+
+    strcpy(response, "RMB OK");
+    ptr = response + 6;
+    char aux[6];
+    for(int i = 0; i < num_auctions; i++) {
+        // TODO Fazer string
+        sprintf(aux, " %s %d", bid_list[i].AID, bid_list[i].active);
+        strcpy(ptr, aux);
+        ptr += strlen(aux);
+    }
+    strcpy(ptr, "\n");
+
+    free(bid_list);
+
+    // TODO Enviar string
+    server_udp_send(response, to_addr, to_addr_len);
+}
+
+void list_auctions_handling(char * message, struct sockaddr* to_addr, socklen_t to_addr_len) {
+    char *ptr;
+    char response[8192];
+    int num_auctions;
+    struct AUCTIONLIST * auction_list;
+
+    strtok(message, " ");    // This only gets the "UNR " string
+
+    num_auctions = GetAuctionsList(auction_list);
+    if (num_auctions == 0) {
+        if (is_mode_verbose) printf("List auctions: There are no auctions.\n");
+        //? Same here
+        server_udp_send("RLS NOK\n", to_addr, to_addr_len);
+        free(auction_list);
+        return;
+    }
+
+    strcpy(response, "RLS OK");
+    ptr = response + 6;
+    char aux[6];
+    for(int i = 0; i < num_auctions; i++) {
+        // TODO Fazer string
+        sprintf(aux, " %s %d", auction_list[i].AID, auction_list[i].active);
+        strcpy(ptr, aux);
+        ptr += strlen(aux);
+    }
+    strcpy(ptr, "\n");
+
+    free(auction_list);
+
+    // TODO Enviar string
+    server_udp_send(response, to_addr, to_addr_len);
+
+}  
+
+void close_auction_handling(int socket_fd) {
+    char buffer[32];
+
+    // Receive the remaining bytes of the message
+    memset(buffer, 0, sizeof buffer);
+    if (server_tcp_receive(socket_fd, buffer, 32) == -1) {
+        if (is_mode_verbose)
+            printf("Failed to receive TCP message. Closing connection.\n");
+        server_tcp_close(socket_fd);
+        return;
+    }
+    
+    // Check if the message is valid
+    char UID[6], AID[3], password[8];
+    sscanf(buffer, "%s %s %s\n", UID, AID, password);
+
+    if (!verify_format_id(UID) || !verify_format_id(AID) || !verify_format_password(password)) {
+        if (is_mode_verbose)
+            printf("Invalid TCP request made to server.\n");
+        server_tcp_send(socket_fd, "ERR\n", 4);
+        server_tcp_close(socket_fd);
+        return;
+    }
+
+    // Check if the user is logged in
+    int status = CheckUserLogged(UID, password);
+    if (status <= 0) {
+        if (is_mode_verbose)
+            printf("Close auction: User %s is not logged in.\n", UID);
+        server_tcp_send(socket_fd, "RCL NLG\n", 8);
+        server_tcp_close(socket_fd);
+        return;
+    }
+
+    /*
+    status = CloseAuction(AID, UID);
+    switch (status) {
+        case 0:
+            if (is_mode_verbose)
+                printf("Close auction: Auction %s has been closed.\n", AID);
+            server_tcp_send(socket_fd, "RCL OK\n", 7);
+            server_tcp_close(socket_fd);
+            return;
+        case -1:
+            if (is_mode_verbose)
+                printf("Close auction: Auction does not exist - %s.\n", AID);
+            server_tcp_send(socket_fd, "RCL EAU\n", 8);
+            server_tcp_close(socket_fd);
+            return;
+        case -2:
+            if (is_mode_verbose)
+                printf("Close auction: User %s is not the auction owner.\n", UID);
+            server_tcp_send(socket_fd, "RCL EOW\n", 8);
+            server_tcp_close(socket_fd);
+            return;
+        case -3:
+            if (is_mode_verbose)
+                printf("Close auction: Auction %s has already ended.\n", AID);
+            server_tcp_send(socket_fd, "RCL END\n", 8);
+            server_tcp_close(socket_fd);
+            return;
+    }
+    */
+
+
+
+    return;
 }
 
 /***
@@ -425,11 +581,11 @@ int handle_udp_request() {
     } else if (!strcmp(message_type, "UNR ")) {
         unregister_handling(buffer, &sender_addr, sender_addr_len);
     } else if (!strcmp(message_type, "LMA ")) {
-        // TODO List my auctions handling routine
+        list_myauctions_handling(buffer, &sender_addr, sender_addr_len);
     } else if (!strcmp(message_type, "LMB ")) {
-        // TODO List my bids handling routine
+        list_mybids_handling(buffer, &sender_addr, sender_addr_len);
     } else if (!strcmp(message_type, "LST\n")) {
-        // TODO List all auctions handling routine
+        list_auctions_handling(buffer, &sender_addr, sender_addr_len);
     } else if (!strcmp(message_type, "SRC ")) {
         // TODO Auction record handling routine
     } else {
@@ -491,7 +647,7 @@ int handle_tcp_request() {
     if(!strcmp(buffer, "OPA ")) {
         // TODO Open auction handling routine
     } else if(!strcmp(buffer, "CLS ")) {
-        // TODO Close auction handling routine
+        close_auction_handling(socket_fd);
     } else if(!strcmp(buffer, "SAS ")) {
         // TODO Show asset handling routine
     } else if(!strcmp(buffer, "BID ")) {
