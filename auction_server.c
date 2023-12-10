@@ -247,7 +247,7 @@ void logout_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_
                 break;
             } else {
                 if (is_mode_verbose) 
-                    printf("Logout: Invalid password or password error for user %s\n", userID);
+                    printf("Logout: User %s has logged out\n", userID);
                 //? Same here
                 server_udp_send("RLO OK\n", to_addr, to_addr_len);
                 break;
@@ -292,31 +292,43 @@ void unregister_handling(char* message, struct sockaddr* to_addr, socklen_t to_a
     }
     strcpy(userPasswd, token);
 
-    status = Unregister(userID);
-    //! There is no return value for a non-registered user (I'm using -2 in this case)
-    status = 0;    // TODO Delete this line
-    if (status == -2) {
-        if (is_mode_verbose) 
-            printf("Unregister: There was an error while unregistering user %s\n", userID);
-        //? Same here
-        server_udp_send("ERR\n", to_addr, to_addr_len);
-    } else if (status == -1) {         
-        if (is_mode_verbose) 
-            printf("Unregister: User %s not registered in database\n", userID);
-        //? Same here
-        server_udp_send("RUR UNR\n", to_addr, to_addr_len);
-    } else if (status == -1) {  //? I suppose -1 is when the user is not logged in
-        if (is_mode_verbose) 
-            printf("Unregister: User %s is not logged in\n", userID);
-        //? Same here
-        server_udp_send("RUR NOK\n", to_addr, to_addr_len);
-    } else if (status == 0) {
-        if (is_mode_verbose) 
-            printf("Unregister: User %s has logged out.\n", userID);
-        //? Same here
-        server_udp_send("RUR OK\n", to_addr, to_addr_len);
+    // Check if the user is logged in before logging out
+    status = CheckUserLogged(userID, userPasswd);
+    switch (status) {
+        case -2:
+            if (is_mode_verbose) 
+                printf("Unregister: Invalid password or password error for user %s\n", userID);
+            //? Same here
+            server_udp_send("ERR\n", to_addr, to_addr_len);
+            break;
+        case -1:
+            if (is_mode_verbose) 
+                printf("Unregister: User %s not registered in database\n", userID);
+            //? Same here
+            server_udp_send("RUR UNR\n", to_addr, to_addr_len);
+            break;
+        case 0:
+            if (is_mode_verbose) 
+                printf("Unregister: User %s is not logged in\n", userID);
+            //? Same here
+            server_udp_send("RUR NOK\n", to_addr, to_addr_len);
+            break;
+        case 1:
+            status = Unregister(userID);
+            if (status != 1) {
+                if (is_mode_verbose) 
+                    printf("Unregister: User %s is not logged in %s\n", userID);
+                //? Same here
+                server_udp_send("RUR NOK\n", to_addr, to_addr_len);
+                break;
+            } else {
+                if (is_mode_verbose) 
+                    printf("Unregister: Unregistered user %s\n", userID);
+                //? Same here
+                server_udp_send("RUR OK\n", to_addr, to_addr_len);
+                break;
+            }
     }
-
     return;
 }
 
