@@ -335,12 +335,17 @@ void list_myauctions_handling(char* message, struct sockaddr* to_addr, socklen_t
 
     strcpy(response, "RMA OK");
     ptr = response + 6;
+    char aux[6];
     for(int i = 0; i < num_auctions; i++) {
         // TODO Fazer string
-        
+        sprintf(aux, " %s %d", auction_list[i].AID, auction_list[i].active);
+        strcpy(ptr, aux);
+        ptr += strlen(aux);
     }
+    strcpy(ptr, "\n");
 
     // TODO Enviar string
+    server_udp_send(response, to_addr, to_addr_len);
 }
 
 /***

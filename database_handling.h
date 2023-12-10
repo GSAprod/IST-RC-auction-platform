@@ -47,10 +47,19 @@ int CreateUser(char * UID, char * password);
 int Login(char * UID, char * password);
 
 /*
+ * Function that closes an auction. Doenn't verify if user is logged in
+ * @param AID: Auction ID
+ * @param UID: User ID
+ * 
+ * @returns 0 if no error occurred, -1 if auction does not exist, -2 if user is not the auction owner, -3 if auction has ended, -4 if an error occurred
+*/
+int CloseAuction(char * AID, char * UID);
+
+/*
  * Function that logs out a user
  * @param UID: User ID
  * 
- * @returns 1 if user logs out, 0 if user is not logged in
+ * @returns 1 if user logs out, 0 if user is not logged in, -1 if not even registered
 */
 int Logout(char * UID);
 

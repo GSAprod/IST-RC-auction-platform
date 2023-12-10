@@ -254,36 +254,26 @@ int CloseAuction(char * AID, char * UID) {
 
 	char fileName[256];
 
-	if (!CheckUserLogged(UID)) {
-		if (DEBUG) printf("User %s is not logged in\n", UID);
-		return -1; //* -1 = user not logged in
-	}
-	
-	if (DEBUG) printf("User %s is logged in\n", UID);
-
-
-
-
 	//TODO: Make close auction function
 	sprintf(fileName, "ASDIR/AUCTIONS/%s/START_%s.txt", AID, AID);
 	if (checkAssetFile(fileName)) {
 		if (DEBUG) printf("Auction %s exists\n", AID);
 	} else {
 		if (DEBUG) printf("Auction %s does not exist\n", AID);
-		return -2; //* -2 = auction does not exist
+		return -1; //* -1 = auction does not exist
 	}
 
 	FILE * file = fopen(fileName, "r");
 	if (file == NULL) {
 		if (DEBUG) printf("Error opening file\n");
-		return -1;
+		return -4;
 	}
 
 	char auction_info[256];
 
 	if (fread(auction_info, 1, 256, file) < 0) {
 		if (DEBUG) printf("Error reading from auction file\n");
-		return -1;
+		return -4;
 	}
 
 	char UID[6];
@@ -293,7 +283,7 @@ int CloseAuction(char * AID, char * UID) {
 
 	if (strcmp(UID, UID)) {
 		if (DEBUG) printf("User %s is not the auction host\n", UID);
-		return -3; //* -3 = user is not the auction host
+		return -2; //* -2 = user is not the auction host
 	}
 
 	fclose(file);
@@ -304,7 +294,7 @@ int CloseAuction(char * AID, char * UID) {
 
 	if (checkAssetFile(fileName)) {
 		if (DEBUG) printf("Auction %s already ended\n", AID);
-		return -4; //* -4 = auction already ended
+		return -3; //* -3 = auction already ended
 	}
 
 
@@ -312,7 +302,7 @@ int CloseAuction(char * AID, char * UID) {
   file = fopen(fileName, "w");
 	if (file == NULL) {
 		if (DEBUG) printf("Error creating end file\n");
-		return -1;
+		return -4;
 	}
 
 	time_t now;
@@ -333,7 +323,7 @@ int CloseAuction(char * AID, char * UID) {
 	if (written != strlen(end_datetime)) {
 		if (DEBUG) printf("Error writing to end file\n");
 		fclose(file);
-		return -1;
+		return -4;
 	}
 
 	// TODO: Finish calculating time elapsed
