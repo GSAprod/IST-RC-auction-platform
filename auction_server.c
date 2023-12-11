@@ -688,17 +688,115 @@ void show_asset_handling(int socket_fd) {
             *ptr = '\0';
             break;
         }
+        i++;
         ptr++;
     }
 
-    if(!verify_format_AID(aid)) {
+    if(!verify_format_AID(aid) || i == 32) {
         memset(aid, 0, sizeof aid);
         strcpy(aid, "ERR\n");
         server_tcp_send(socket_fd, aid, strlen(aid));
         return;
     }
 
-    printf("%d\n", ShowAsset(aid, socket_fd));
+    if(ShowAsset(aid, socket_fd) == -1) {
+        memset(aid, 0, sizeof aid);
+        strcpy(aid, "RSA NOK\n");
+        server_tcp_send(socket_fd, aid, strlen(aid));
+        return;
+    }
+}
+
+/***
+ * Creates a new bid using the paramters specified in the TCP request.
+ * 
+ * @param socket_fd The socket where the parameters must be read
+*/
+void bid_handling(int socket_fd) {
+    char userID[7], userPasswd[9], auctionID[4], auctionValue[17];
+    char* ptr;
+
+    // Check if the userID is valid
+    ptr = userID;
+    memset(userID, 0, sizeof userID);
+    int i = 0;
+    while(server_tcp_receive(socket_fd, ptr, 1) > 0 && i < 7) {
+        if (*ptr == ' ') { *ptr = '\0'; break; }
+        if (*ptr == '\n') { i = 7; break; }
+
+        i++;
+        ptr++;
+    }
+    if(i == 7 || !verify_format_id(userID)) {
+        memset(userID, 0, sizeof userID);
+        strcpy(userID, "ERR\n");
+        server_tcp_send(socket_fd, userID, strlen(userID));
+        return;
+    }
+
+    // Check if the userPasswd is valid
+    ptr = userPasswd;
+    memset(userPasswd, 0, sizeof userPasswd);
+    i = 0;
+    while(server_tcp_receive(socket_fd, ptr, 1) > 0 && i < 9) {
+        if (*ptr == ' ') { *ptr = '\0'; break; }
+        if (*ptr == '\n') { i = 9; break; }
+        
+        i++;
+        ptr++;
+    }
+    if(i == 9 || !verify_format_password(userPasswd)) {
+        memset(userPasswd, 0, sizeof userPasswd);
+        strcpy(userPasswd, "ERR\n");
+        server_tcp_send(socket_fd, userPasswd, strlen(userPasswd));
+        return;
+    }
+
+    // Check if the auctionID is valid
+    ptr = auctionID;
+    memset(auctionID, 0, sizeof auctionID);
+    i = 0;
+    while(server_tcp_receive(socket_fd, ptr, 1) > 0 && i < 4) {
+        if (*ptr == ' ') { *ptr = '\0'; break; }
+        if (*ptr == '\n') { i = 4; break; }
+        
+        i++;
+        ptr++;
+    }
+    if(i == 4 || !verify_format_AID(auctionID)) {
+        memset(auctionID, 0, sizeof auctionID);
+        server_tcp_send(socket_fd, "ERR\n", 4);
+        return;
+    }
+
+    // Check if the bid value is valid
+    ptr = auctionValue;
+    memset(auctionValue, 0, sizeof auctionValue);
+    i = 0;
+    for (i = 0; i < 17; i++) {
+        if(i == 17 || server_tcp_receive(socket_fd, ptr, 1) <= 0) {
+            memset(auctionValue, 0, sizeof auctionValue);
+            server_tcp_send(socket_fd, "ERR\n", 4);
+            return;
+        }
+
+        if(*ptr == '\n') { 
+            if (i == 0) {
+                memset(auctionValue, 0, sizeof auctionValue);
+                server_tcp_send(socket_fd, "ERR\n", 4);
+                return;
+            } else { *ptr = '\0'; break; }
+        }
+
+        if (!isdigit(*ptr)) {
+            memset(auctionValue, 0, sizeof auctionValue);
+            server_tcp_send(socket_fd, "ERR\n", 4);
+            return;
+        }
+    }
+    
+    // TODO Call BID function and react accordingly
+    printf("highest: %d\n", GetHighestBid(auctionID));
 }
 
 /***
@@ -807,7 +905,7 @@ int handle_tcp_request() {
     } else if(!strcmp(buffer, "SAS ")) {
         show_asset_handling(socket_fd);
     } else if(!strcmp(buffer, "BID ")) {
-        // TODO Bid handling routine
+        bid_handling(socket_fd);
     } else {
         // Send an error response using TCP
         status = server_tcp_send(socket_fd, "ERR\n", 4);

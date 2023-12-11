@@ -388,13 +388,47 @@ int CloseAuction(char * AID, char * UID) {
 	return 0;
 }
 
-int Bid(char * AID, char * UID, char * value, char * datetime, char * fulltime) {
-	if (DEBUG) printf("Bidding on auction %s\n", AID);
+// TODO TEST THIS FUNCTION
+int GetHighestBid(char * AID) {
+	struct dirent **filelist;
+	char curPath[256];
+	int n_entries, name_len;
 
+	// Check if the auction exists
+	sprintf(curPath, "ASDIR/AUCTIONS/%s/BIDS/", AID);
+	if (checkAssetFile(curPath)) {
+		if (DEBUG) printf("Auction %s exists\n", AID);
+	} else {
+		if (DEBUG) printf("Auction %s does not exist\n", AID);
+		return -1; //* -1 = auction does not exist
+	}
+
+	// Start scanning the bids directory until a file is found
+	n_entries = scandir(curPath, &filelist, 0, alphasort);
+	if (n_entries <= 0) {
+		if (DEBUG) printf("No files in asset folder of auction %s", AID);
+		return 0;
+	}
+
+	while(n_entries--) {
+		name_len=strlen(filelist[n_entries]->d_name);
+		if (name_len > 2) break;	//Ignore '.' and '..'
+
+		printf("%s\n", filelist[n_entries]->d_name);
+	}
+
+	return 1;
+
+}
+
+int Bid(char * AID, char * UID, char * value, char * datetime, char * fulltime) {
 	char fileName[256];
+
+	if (DEBUG) printf("Bidding on auction %s\n", AID);
 
 	//TODO: CHECK IF BID VALUE IS HIGHER THAN CURRENT HIGHEST BID
 
+	// TODO TEST THIS
 	//Create bid file
 	sprintf(fileName, "ASDIR/AUCTIONS/%s/BIDS/%s.txt", AID, value);
 	FILE * file = fopen(fileName, "w");

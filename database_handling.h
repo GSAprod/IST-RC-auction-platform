@@ -92,6 +92,15 @@ int Unregister(char * UID);
 int CreateAuction(char * UID, char*name, char * asset_fname, char * start_value, char * time_active, char * start_datetime, time_t start_fulltime, char * file_size, int socket_fd, char * remaining_message, size_t remaining_size);
 
 /***
+ * Returns the highest value of a bid
+ * 
+ * @param AID The ID of the auction to get the highest bid
+ * @returns the highest bid value if there are bids, 0 if there are no bids,
+ * -1 if an error occurred
+*/
+int GetHighestBid(char * AID);
+
+/***
  * Function that creates a new bid
  * @param AID: Auction ID
  * @param UID: User ID
