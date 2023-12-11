@@ -363,11 +363,14 @@ void list_myauctions_handling(char* message, struct sockaddr* to_addr, socklen_t
     char userID[7], response[8192];
     int num_auctions;
 
-    strtok(message, " ");    // This only gets the "UNR " string
+    strtok(message, " ");    // This only gets the "LMA " string
+
+    printf("message: %s\n", message);
 
     // Get the user ID and verify if it's a 6-digit number
-    token = strtok(NULL, " ");
+    token = strtok(NULL, "\n");
     if (!verify_format_id(token)) {
+        printf("token: %s\n", token);
         if (is_mode_verbose) printf("Invalid UDP request made to server.\n");
         //? Should we check if the status is -1? If so, what should we do?
         server_udp_send("ERR\n", to_addr, to_addr_len);
@@ -376,7 +379,7 @@ void list_myauctions_handling(char* message, struct sockaddr* to_addr, socklen_t
     strcpy(userID, token);
 
     struct AUCTIONLIST * auction_list = NULL;
-    num_auctions = GetAuctionsListByUserBidded(userID, auction_list);
+    num_auctions = GetAuctionsListByUser(userID, &auction_list);
     if (num_auctions == -1) {
         if (is_mode_verbose) printf("List my auctions: User %s is not logged in.\n", userID);
         server_udp_send("RMA NLG\n", to_addr, to_addr_len);
@@ -390,14 +393,17 @@ void list_myauctions_handling(char* message, struct sockaddr* to_addr, socklen_t
         return;
     }
 
+    printf("num_auctions: %d\n", num_auctions);
+
     strcpy(response, "RMA OK");
     ptr = response + 6;
-    char aux[6];
+    char aux[10];
     for(int i = 0; i < num_auctions; i++) {
-        // TODO Fazer string
+        printf("AID: %s\n", auction_list[i].AID);
         sprintf(aux, " %s %d", auction_list[i].AID, auction_list[i].active);
         strcpy(ptr, aux);
         ptr += strlen(aux);
+        memset(aux, 0, sizeof aux);
     }
     strcpy(ptr, "\n");
 
@@ -413,29 +419,27 @@ void list_mybids_handling(char* message, struct sockaddr* to_addr, socklen_t to_
     int num_auctions;
     struct AUCTIONLIST * bid_list = NULL;
 
-    strtok(message, " ");    // This only gets the "UNR " string
+    strtok(message, " ");    // This only gets the "LMB " string
 
     // Get the user ID and verify if it's a 6-digit number
-    token = strtok(NULL, " ");
+    token = strtok(NULL, "\n");
     if (!verify_format_id(token)) {
         if (is_mode_verbose) printf("Invalid UDP request made to server.\n");
         //? Should we check if the status is -1? If so, what should we do?
         server_udp_send("ERR\n", to_addr, to_addr_len);
         return;
     }
+
     strcpy(userID, token);
 
-    // Check if the user is logged into the database
-
-    num_auctions = GetAuctionsListByUserBidded(userID, bid_list);
+    num_auctions = GetAuctionsListByUserBidded(userID, &bid_list);
     if (num_auctions == -1) {
         if (is_mode_verbose) printf("List my bids: User %s is not logged in.\n", userID);
-        //? Same here
         server_udp_send("RMB NLG\n", to_addr, to_addr_len);
         return;
     }
     if (num_auctions == 0) {
-        if (is_mode_verbose) printf("List my bids: User %s has no ongoing bids.\n", userID);
+        if (is_mode_verbose) printf("List my bids: User %s has no BIDS.\n", userID);
         //? Same here
         server_udp_send("RMB NOK\n", to_addr, to_addr_len);
         free(bid_list);
@@ -444,16 +448,14 @@ void list_mybids_handling(char* message, struct sockaddr* to_addr, socklen_t to_
 
     strcpy(response, "RMB OK");
     ptr = response + 6;
-    char aux[6];
+    char aux[10];
     for(int i = 0; i < num_auctions; i++) {
-        // TODO Fazer string
         sprintf(aux, " %s %d", bid_list[i].AID, bid_list[i].active);
         strcpy(ptr, aux);
         ptr += strlen(aux);
     }
-    strcpy(ptr, "\n");
-
     free(bid_list);
+    strcpy(ptr, "\n");
 
     // TODO Enviar string
     server_udp_send(response, to_addr, to_addr_len);
@@ -467,29 +469,34 @@ void list_auctions_handling(char * message, struct sockaddr* to_addr, socklen_t 
 
     strtok(message, " ");    // This only gets the "UNR " string
 
-    num_auctions = GetAuctionsList(auction_list);
+    num_auctions = GetAuctionsList(&auction_list);
+    if (is_mode_verbose) printf("num_auctions: %d\n", num_auctions);
+    if (num_auctions == -1) {
+        if (is_mode_verbose) printf("List auctions: User is not logged in.\n");
+        server_udp_send("RST NLG\n", to_addr, to_addr_len);
+        return;
+    }
     if (num_auctions == 0) {
-        if (is_mode_verbose) printf("List auctions: There are no auctions.\n");
+        if (is_mode_verbose) printf("List auctions: There are no ongoing auctions.\n");
         //? Same here
-        server_udp_send("RLS NOK\n", to_addr, to_addr_len);
+        server_udp_send("RST NOK\n", to_addr, to_addr_len);
         free(auction_list);
         return;
     }
 
     strcpy(response, "RLS OK");
     ptr = response + 6;
-    char aux[6];
+    char aux[10];
     for(int i = 0; i < num_auctions; i++) {
         sprintf(aux, " %s %d", auction_list[i].AID, auction_list[i].active);
         strcpy(ptr, aux);
         ptr += strlen(aux);
     }
+    free(auction_list);
     strcpy(ptr, "\n");
 
-    free(auction_list);
-
+    // TODO Enviar string
     server_udp_send(response, to_addr, to_addr_len);
-
 }  
 
 void open_auction_handling(int socket_fd) {

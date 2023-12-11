@@ -628,7 +628,7 @@ int checkIfAuctionEnded(char * AID) {
 			}
 
 			char end_datetime[20];
-			char time_to_end[10];
+			char time_to_end[16];
 
 			memset(end_datetime, 0, sizeof(end_datetime));
 
@@ -744,7 +744,7 @@ int GetAuctionInfo(char * AID) {
 	return 0;
 }
 
-int GetAuctionsList(struct AUCTIONLIST * auction_list) {
+int GetAuctionsList(struct AUCTIONLIST ** auction_list) {
 	struct dirent **filelist;
 	int n_entries, n_auctions, len;
 	char dirname[32];
@@ -753,6 +753,7 @@ int GetAuctionsList(struct AUCTIONLIST * auction_list) {
 	sprintf(dirname, "ASDIR/AUCTIONS");
 
 	n_entries = scandir(dirname, &filelist, 0, alphasort);
+	if (DEBUG) printf("Number of entries: %d\n", n_entries);
 
 	if (n_entries <= 0) {
 		if (DEBUG) printf("Error scanning directory\n");
@@ -761,29 +762,31 @@ int GetAuctionsList(struct AUCTIONLIST * auction_list) {
 
 	n_auctions = 0;
 
-	auction_list = malloc((n_entries) * sizeof(struct AUCTIONLIST));
+	*auction_list = (struct AUCTIONLIST*)malloc((n_entries) * sizeof(struct AUCTIONLIST));
 
 	int i = 0;
 
 	for (i = 0; i < n_entries; i++) {
-		len = strlen(filelist[n_auctions]->d_name);
-		if (DEBUG) printf("File name: %s\n", filelist[n_auctions]->d_name);
+		len = strlen(filelist[i]->d_name);
+		if (DEBUG) printf("File name: %s\n", filelist[i]->d_name);
 		if (len == 3) {
-			sprintf(pathname, "ASDIR/AUCTIONS/%s", filelist[n_auctions]->d_name);
+			sprintf(pathname, "ASDIR/AUCTIONS/%s", filelist[i]->d_name);
 			if (DEBUG) printf("Pathname: %s\n", pathname);
 			if (checkAssetFile(pathname)) {
-				strcpy(auction_list[n_auctions].AID, filelist[n_auctions]->d_name);
-				if (DEBUG) printf("AID: %s\n", auction_list[n_auctions].AID);
+				strncpy((*auction_list)[n_auctions].AID, filelist[i]->d_name, 3);
+				(*auction_list)[n_auctions].AID[3] = '\0';
+				(*auction_list)[n_auctions].active = checkIfAuctionEnded((*auction_list)[n_auctions].AID) ? 0 : 1;
 				++n_auctions;
 			}
 		}
 		free(filelist[n_entries]);
+		memset(pathname, 0, sizeof(pathname));
 	}
 	free(filelist);
 	return n_auctions;
 }
 
-int GetAuctionsListByUser(char * UID, struct AUCTIONLIST * auction_list) {
+int GetAuctionsListByUser(char * UID, struct AUCTIONLIST ** auction_list) {
 	struct dirent **filelist;
 	int n_entries, n_auctions, len;
 	char dirname[32];
@@ -800,32 +803,40 @@ int GetAuctionsListByUser(char * UID, struct AUCTIONLIST * auction_list) {
 
 	n_auctions = 0;
 
-	auction_list = malloc((n_entries) * sizeof(struct AUCTIONLIST));
+	*auction_list = (struct AUCTIONLIST*)malloc((n_entries) * sizeof(struct AUCTIONLIST));
 
 	int i = 0;
 
 	for (i = 0; i < n_entries; i++) {
-		len = strlen(filelist[n_auctions]->d_name);
-		if (DEBUG) printf("File name: %s\n", filelist[n_auctions]->d_name);
-		if (len == 3) {
-			sprintf(pathname, "ASDIR/USERS/%s/HOSTED/%s", UID, filelist[n_auctions]->d_name);
+		len = strlen(filelist[i]->d_name);
+		if (DEBUG) printf("File name: %s\n", filelist[i]->d_name);
+		if (len == 7) {
+			sprintf(pathname, "ASDIR/USERS/%s/HOSTED/%s", UID, filelist[i]->d_name);
 			if (DEBUG) printf("Pathname: %s\n", pathname);
 			if (checkAssetFile(pathname)) {
-				strcpy(auction_list[n_auctions].AID, filelist[n_auctions]->d_name);
-				if (DEBUG) printf("AID: %s\n", auction_list[n_auctions].AID);
+				char AID [4];
+				memset(AID, 0, sizeof(AID));
+				sscanf(filelist[i]->d_name, "%3s.txt", AID);
+				strncpy((*auction_list)[n_auctions].AID, AID, 3);
+				(*auction_list)[n_auctions].AID[3] = '\0';
+				(*auction_list)[n_auctions].active = checkIfAuctionEnded((*auction_list)[n_auctions].AID) ? 0 : 1;
 				++n_auctions;
 			}
 		}
 		free(filelist[n_entries]);
+		memset(pathname, 0, sizeof(pathname));
 	}
 	free(filelist);
+
+
 	return n_auctions;
 }
 
-int GetAuctionsListByUserBidded(char * UID, struct AUCTIONLIST * auction_list) {
+int GetAuctionsListByUserBidded(char * UID, struct AUCTIONLIST ** auction_list) {
 	struct dirent **filelist;
 	int n_entries, n_auctions, len;
 	char dirname[32];
+	char pathname[300];
 
 	sprintf(dirname, "ASDIR/USERS/%s/BIDDED", UID);
 
@@ -838,20 +849,28 @@ int GetAuctionsListByUserBidded(char * UID, struct AUCTIONLIST * auction_list) {
 
 	n_auctions = 0;
 
-	auction_list = malloc((n_entries) * sizeof(struct AUCTIONLIST));
+	*auction_list = (struct AUCTIONLIST*)malloc((n_entries) * sizeof(struct AUCTIONLIST));
 
 	int i = 0;
 
 	for (i = 0; i < n_entries; i++) {
-		len = strlen(filelist[n_auctions]->d_name);
-		if (DEBUG) printf("File name: %s\n", filelist[n_auctions]->d_name);
-		if (len == 3) {
-			strcpy(auction_list[n_auctions].AID, filelist[n_auctions]->d_name);
-			auction_list[n_auctions].active = 1; //! checkIfAuctionEnded(auction_list[n_auctions].AID) ? 1 : 0;
-			if (DEBUG) printf("AID: %s\n", auction_list[n_auctions].AID);
-			++n_auctions;
+		len = strlen(filelist[i]->d_name);
+		if (DEBUG) printf("File name: %s\n", filelist[i]->d_name);
+		if (len == 7) {
+			sprintf(pathname, "ASDIR/USERS/%s/BIDDED/%s", UID, filelist[i]->d_name);
+			if (DEBUG) printf("Pathname: %s\n", pathname);
+			if (checkAssetFile(pathname)) {
+				char AID [4];
+				memset(AID, 0, sizeof(AID));
+				sscanf(filelist[i]->d_name, "%3s.txt", AID);
+				strncpy((*auction_list)[n_auctions].AID, AID, 3);
+				(*auction_list)[n_auctions].AID[3] = '\0';
+				(*auction_list)[n_auctions].active = checkIfAuctionEnded((*auction_list)[n_auctions].AID) ? 0 : 1;
+				++n_auctions;
+			}
 		}
 		free(filelist[n_entries]);
+		memset(pathname, 0, sizeof(pathname));
 	}
 	free(filelist);
 	return n_auctions;
@@ -860,7 +879,7 @@ int GetAuctionsListByUserBidded(char * UID, struct AUCTIONLIST * auction_list) {
 int CheckUserPassword(char * UID, char * password) {
 	char fileName[256];
 
-	sprintf(fileName, "ASDIR/USERS/%s/%s_pass.txt", UID, UID);
+	sprintf(fileName, "ASDIR/USERS/%s/%s_pass->txt", UID, UID);
 	if (checkAssetFile(fileName) <= 0) {
 		if (DEBUG) printf("User %s has no password defined\n", UID);
 		return -1;
