@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include "client_connections.h"
+#include "utils.h"
 
 
 /*

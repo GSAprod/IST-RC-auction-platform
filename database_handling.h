@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include "file_handling.h"
+#include "utils.h"
 #include <time.h>
 
 typedef struct BIDLIST {
@@ -23,8 +24,6 @@ typedef struct AUCTIONLIST {
 	char AID[4];
 	int active;
 } AUCTIONLIST;
-
-//int DEBUG = 1; 
 
 /***
  * Function that initializes the database. If db is already initialized, it does nothing
