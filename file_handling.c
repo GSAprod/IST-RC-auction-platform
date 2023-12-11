@@ -23,6 +23,7 @@ int sendFile(char * filename, long fsize) {
 		return -1;
 	}
 	while (fsize > 0) {
+		printf("fsize: %ld\n", fsize);
 		char buffer[512];
 		int read_size = read(fd, buffer, fsize > 512 ? 512 : fsize);
 		if (read_size == -1) {
@@ -101,6 +102,7 @@ int ServerReceiveFile(char * filename, long fsize, int socket_fd, char * beginni
 	printf("fsize: %ld\n", fsize);
 
 	while (fsize > 0) {
+		printf("fsize: %ld\n", fsize);
 		char buffer[512];
 		memset(buffer, 0, sizeof(buffer));
 		int read_size = server_tcp_receive(socket_fd,buffer, fsize > 512 ? 512 : fsize);

@@ -114,6 +114,24 @@ int verify_format_password(char* string) {
 }
 
 /***
+ * Checks if the string given corresponds to a 3-digit auction ID.
+ * 
+ * @param string The string to check
+ * @return 1 if the string given has the format of an auction ID, 0 otherwise
+*/
+int verify_format_AID(char* string) {
+    if (strlen(string) != 3)
+        return 0;
+
+    for(int i = 0; i < 3; i++) {
+        char c = string[i];
+        if (!isdigit(c)) return 0;
+    }
+
+    return 1;
+}
+
+/***
  * Logs in a user, or registers a brand new user if it doesn't exist in the database
  * 
  * @param message The UDP request that contains the info necessary for the login.
@@ -478,12 +496,11 @@ void open_auction_handling(int socket_fd) {
     char buffer[256];
     char UID[7], password[9], name[32], start_value[16], timea_active[12], Fname[32], Fsize[64];
     char res[24];
-    char remaining[256];
 
     // Receive some bytes of the message
     memset(buffer, 0, sizeof buffer);
 
-    if (server_tcp_receive(socket_fd, buffer, 256) == -1) {
+    if (server_tcp_receive(socket_fd, buffer, sizeof(buffer)) == -1) {
         if (is_mode_verbose)
             printf("Failed to receive TCP message. Closing connection.\n");
         server_tcp_close(socket_fd);
@@ -497,7 +514,9 @@ void open_auction_handling(int socket_fd) {
     memset(timea_active, 0, sizeof timea_active);
     memset(Fname, 0, sizeof Fname);
     memset(Fsize, 0, sizeof Fsize);
-    memset(remaining, 0, sizeof remaining);
+
+    char * remaining = malloc(sizeof buffer);
+    memset(remaining, 0, sizeof buffer);
 
 
     if (is_mode_verbose)
@@ -506,19 +525,26 @@ void open_auction_handling(int socket_fd) {
     char * token = strtok(buffer, " ");
     strcpy(UID, token);
     token = strtok(NULL, " ");
+    printf("token: %s\n", token);
     strcpy(password, token);
     token = strtok(NULL, " ");
+    printf("token: %s\n", token);
     strcpy(name, token);
     token = strtok(NULL, " ");
+    printf("token: %s\n", token);
     strcpy(start_value, token);
     token = strtok(NULL, " ");
+    printf("token: %s\n", token);
     strcpy(timea_active, token);
     token = strtok(NULL, " ");
+    printf("token: %s\n", token);
     strcpy(Fname, token);
     token = strtok(NULL, " ");
+    printf("token: %s\n", token);
     strcpy(Fsize, token);
-    token = strtok(NULL, "\n");
-    strcpy(remaining, token);
+    
+    printf("token: %s\n", token + strlen(Fsize) + 1);
+    strcpy(remaining, token + strlen(Fsize) + 1);
 
     if (is_mode_verbose) {
         printf("Open auction: User %s is trying to open an auction.\n", UID);
@@ -534,26 +560,34 @@ void open_auction_handling(int socket_fd) {
     if (CheckUserLogged(UID, password) != 1) {
         sprintf(res, "ROA NLG\n");
         server_tcp_send(socket_fd, res, strlen(res));
+        free(remaining);
         return;
     }
 
     char start_time[20];
     time_t now;
 
+    size_t remaining_size = sizeof(buffer) - ( strlen(UID) + strlen(password) + strlen(name) + strlen(start_value) + strlen(timea_active) + strlen(Fname) + strlen(Fsize) + 7);
+
     time(&now);
 
     timeToString(now, start_time);
 
-    int AID = CreateAuction(UID, name, Fname, start_value, timea_active, start_time, now, Fsize, socket_fd, remaining);
+    int AID = CreateAuction(UID, name, Fname, start_value, timea_active, start_time, now, Fsize, socket_fd, remaining, remaining_size);
 
     if (AID <= 0) {
         sprintf(res, "ROA NOK\n");
         server_tcp_send(socket_fd, res, strlen(res));
+        free(remaining);
         return;
     }
 
     sprintf(res, "ROA OK %03d\n", AID);
     server_tcp_send(socket_fd, res, strlen(res));
+
+    server_tcp_close(socket_fd);
+
+    free(remaining);
 
     return;
 
@@ -564,22 +598,32 @@ void close_auction_handling(int socket_fd) {
 
     // Receive the remaining bytes of the message
     memset(buffer, 0, sizeof buffer);
-    if (server_tcp_receive(socket_fd, buffer, 32) == -1) {
-        if (is_mode_verbose)
-            printf("Failed to receive TCP message. Closing connection.\n");
-        server_tcp_close(socket_fd);
-        return;
+
+    char * ptr = buffer;
+
+    //reads byte by byte until it finds a \n
+    while (server_tcp_receive(socket_fd, ptr, 1) > 0) {
+        printf("ptr: %c\n", *ptr);
+        if (*ptr == '\n') break;
+        ptr++;
     }
     
     // Check if the message is valid
-    char UID[6], AID[3], password[8];
-    sscanf(buffer, "%s %s %s\n", UID, AID, password);
+    char UID[7], AID[4], password[9];
+    sscanf(buffer, "%s %s %s\n", UID, password, AID);
 
-    if (!verify_format_id(UID) || !verify_format_id(AID) || !verify_format_password(password)) {
-        if (is_mode_verbose)
+    if (is_mode_verbose) {
+        printf("Close auction: User %s is trying to close an auction.\n", UID);
+        printf("Close auction: Auction ID: %s\n", AID);
+        printf("Close auction: Password: %s\n", password);
+    }
+
+    if (!verify_format_id(UID) || !verify_format_password(password) || !verify_format_AID(AID)) {
+        if (is_mode_verbose) {
             printf("Invalid TCP request made to server.\n");
+            printf("ERRORS IN:\nver_UID: %d\nver_aid: %d\nver_pass: %d\n", verify_format_id(UID), verify_format_id(AID), verify_format_password(password));
+        }
         server_tcp_send(socket_fd, "ERR\n", 4);
-        server_tcp_close(socket_fd);
         return;
     }
 
@@ -589,7 +633,6 @@ void close_auction_handling(int socket_fd) {
         if (is_mode_verbose)
             printf("Close auction: User %s is not logged in.\n", UID);
         server_tcp_send(socket_fd, "RCL NLG\n", 8);
-        server_tcp_close(socket_fd);
         return;
     }
 
@@ -599,25 +642,21 @@ void close_auction_handling(int socket_fd) {
             if (is_mode_verbose)
                 printf("Close auction: Auction %s has been closed.\n", AID);
             server_tcp_send(socket_fd, "RCL OK\n", 7);
-            server_tcp_close(socket_fd);
             return;
         case -1:
             if (is_mode_verbose)
                 printf("Close auction: Auction does not exist - %s.\n", AID);
             server_tcp_send(socket_fd, "RCL EAU\n", 8);
-            server_tcp_close(socket_fd);
             return;
         case -2:
             if (is_mode_verbose)
                 printf("Close auction: User %s is not the auction owner.\n", UID);
             server_tcp_send(socket_fd, "RCL EOW\n", 8);
-            server_tcp_close(socket_fd);
             return;
         case -3:
             if (is_mode_verbose)
                 printf("Close auction: Auction %s has already ended.\n", AID);
             server_tcp_send(socket_fd, "RCL END\n", 8);
-            server_tcp_close(socket_fd);
             return;
     }
 
@@ -716,6 +755,8 @@ int handle_tcp_request() {
         server_tcp_close(socket_fd);
         return -1;
     }
+
+    printf("buffer: %s\n", buffer);
 
     //? Each routine should have the following parameters:
     //? - the socket_fd that represents the socket connection 

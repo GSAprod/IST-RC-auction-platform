@@ -201,7 +201,7 @@ int Unregister(char * UID) {
 	return 0;
 }
 
-int CreateAuction(char * UID, char*name, char * asset_fname, char * start_value, char * time_active, char * start_datetime, time_t start_fulltime, char * file_size, int socket_fd, char * remaining_message) {
+int CreateAuction(char * UID, char*name, char * asset_fname, char * start_value, char * time_active, char * start_datetime, time_t start_fulltime, char * file_size, int socket_fd, char * remaining_message, size_t remaining_size) {
 	if (DEBUG) printf("Creating auction\n");
 
 	char fileName[256];
@@ -269,7 +269,7 @@ int CreateAuction(char * UID, char*name, char * asset_fname, char * start_value,
 	long fsize = atol(file_size);
 	//TODO: Create asset file (from TCP)
 	printf("File sizessssss: %ld\n", fsize);
-	ServerReceiveFile(fileName, fsize, socket_fd, remaining_message, strlen(remaining_message));
+	ServerReceiveFile(fileName, fsize, socket_fd, remaining_message, remaining_size);
 
 	memset(fileName, 0, sizeof(fileName));
 
@@ -319,6 +319,7 @@ int CloseAuction(char * AID, char * UID) {
 		if (DEBUG) printf("Error reading from auction file\n");
 		return -4;
 	}
+	fclose(file);
 
 	char db_UID[6];
 
@@ -330,17 +331,25 @@ int CloseAuction(char * AID, char * UID) {
 		return -2; //* -2 = user is not the auction host
 	}
 
-	fclose(file);
+	char start_fulltime[20];
+
+	token = strtok(NULL, " "); //Name
+	token = strtok(NULL, " "); //Asset filename
+	token = strtok(NULL, " "); //Start value
+	token = strtok(NULL, " "); //Time active
+	token = strtok(NULL, " "); //Start date
+	token = strtok(NULL, " "); //Start time
+	token = strtok(NULL, " "); //Start fulltime (time_t)
+	strcpy(start_fulltime, token);
 
 	memset(fileName, 0, sizeof(fileName));
 
 	sprintf(fileName, "ASDIR/AUCTIONS/%s/END_%s.txt", AID, AID);
 
-	if (checkAssetFile(fileName)) {
+	if (checkIfAuctionEnded(AID) == 1) {
 		if (DEBUG) printf("Auction %s already ended\n", AID);
 		return -3; //* -3 = auction already ended
 	}
-
 
 	//end auction
   file = fopen(fileName, "w");
@@ -349,55 +358,26 @@ int CloseAuction(char * AID, char * UID) {
 		return -4;
 	}
 
-	time_t now;
-	char end_datetime_str[20];
+	time_t now; // seconds since 1970-01-01 00:00:00
+	char end_datetime_str[20]; // yyyy-mm-dd hh:mm:ss
+	time_t time_passed; // seconds since auction start
 
 	memset(end_datetime_str, 0, sizeof(end_datetime_str));
 
 	time(&now);
 
-	timeToString(now, end_datetime_str);
+	timeToString(now, end_datetime_str); 
+
+	time_passed = now - atol(start_fulltime);
 
 	if (DEBUG) printf("End datetime: %s\n", end_datetime_str);
 
-	size_t written = fwrite(end_datetime_str, 1, strlen(end_datetime_str), file);
-	if (written != strlen(end_datetime_str)) {
-		if (DEBUG) printf("Error writing to end file\n");
-		fclose(file);
-		return -4;
-	}
+	memset(fileName, 0, sizeof(fileName));
 
-	written = fwrite(" ", 1, 1, file);
-	if (written != 1) {
-		if (DEBUG) printf("Error writing to end file\n");
-		fclose(file);
-		return -4;
-	}
+	sprintf(fileName, "%s %ld", end_datetime_str, time_passed);
 
-	FILE * start_file = fopen("ASDIR/AUCTIONS/%s/START_%s.txt", "r");
-
-	char start_info[256];
-
-	if (fread(start_info, 1, 256, start_file) <= 0) {
-		if (DEBUG) printf("Error reading from start file\n");
-		return -4;
-	}
-
-
-	char start_datetime[20];
-
-	token = strtok(start_info, " "); //UID
-	token = strtok(NULL, " "); //Name
-	token = strtok(NULL, " "); //Asset filename
-	token = strtok(NULL, " "); //Start value
-	token = strtok(NULL, " "); //Time active
-	token = strtok(NULL, " "); //Start date
-	token = strtok(NULL, " "); //Start time
-	token = strtok(NULL, " "); //Start fulltime (time_t)
-	strcpy(start_datetime, token);
-
-	written = fwrite(start_datetime, 1, strlen(start_datetime), file);
-	if (written != strlen(start_datetime)) {
+	size_t written = fwrite(fileName, 1, strlen(fileName), file);
+	if (written != strlen(fileName)) {
 		if (DEBUG) printf("Error writing to end file\n");
 		fclose(file);
 		return -4;
@@ -668,7 +648,7 @@ int checkIfAuctionEnded(char * AID) {
 				return -1;
 			}
 
-			sprintf(time_to_end, "%ld", end_date - now);
+			sprintf(time_to_end, "%ld", end_date - start_date);
 
 			written = fwrite(time_to_end, 1, strlen(time_to_end), file);
 			if (written != strlen(time_to_end)) {
