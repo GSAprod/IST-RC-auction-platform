@@ -433,6 +433,75 @@ int Bid(char * AID, char * UID, char * value, char * datetime, char * fulltime) 
 	return 0;
 }
 
+int ShowAsset(char * AID, int socket_fd) {
+	struct dirent **filelist;
+	struct stat filestat;
+	char curPath[256], fileName[256], buffer[512];
+	int n_entries, name_len, fd;
+	long file_size;
+
+	// Check if the auction exists
+	sprintf(curPath, "ASDIR/AUCTIONS/%s/ASSET/", AID);
+	if (checkAssetFile(curPath)) {
+		if (DEBUG) printf("Auction %s exists\n", AID);
+	} else {
+		if (DEBUG) printf("Auction %s does not exist\n", AID);
+		return -1; //* -1 = auction does not exist
+	}
+
+	// Start scanning a directory unil a file is found
+	n_entries = scandir(curPath, &filelist, 0, alphasort);
+	if (n_entries <= 0) {
+		if (DEBUG) printf("No files in asset folder of auction %s", AID);
+		return -1;
+	}
+
+	while(n_entries--) {
+		name_len=strlen(filelist[n_entries]->d_name);
+		if (name_len > 2) break;	//Ignore '.' and '..'
+	}
+
+	// If a file is not found
+	if (n_entries < 0) {
+		if (DEBUG) printf("Error fetching file from auction %s", AID);
+		free(filelist);
+		return -1;
+	}
+
+	// Get the name of the file
+	memset(fileName, 0, sizeof fileName);
+	strcpy(fileName, filelist[n_entries]->d_name);
+	strcat(curPath, fileName);
+	free(filelist);
+
+	if (DEBUG) printf("Found file %s\n", curPath);
+
+	// Get the length of the file
+	stat(curPath, &filestat);
+	file_size = filestat.st_size;
+	if (file_size == 0) {
+		if (DEBUG) printf("File is empty.\n");
+		return -1;
+	}
+
+	// Open the file to start sending it
+	fd = open(curPath, O_RDONLY);
+	if (fd==-1) {
+		if (DEBUG) printf("Couldn't open auction asset (id: %s)\n", AID);
+		return -1;
+	}
+
+	sprintf(buffer, "RSA OK %s %ld ", fileName, file_size);
+	printf("%s\n", buffer);
+	server_tcp_send(socket_fd, buffer, strlen(buffer));
+
+	serverSendFile(fd, file_size, socket_fd);
+
+	close(fd);
+
+	return 0;
+}
+
 int CheckUserLogged(char * UID, char * password) {
 	char fileName[256];
 	if (DEBUG) printf("Checking if user %s is logged in\n", UID);

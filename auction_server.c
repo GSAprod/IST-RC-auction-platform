@@ -490,7 +490,7 @@ void list_auctions_handling(char * message, struct sockaddr* to_addr, socklen_t 
 
     server_udp_send(response, to_addr, to_addr_len);
 
-}  
+}
 
 void open_auction_handling(int socket_fd) {
     char buffer[256];
@@ -664,6 +664,37 @@ void close_auction_handling(int socket_fd) {
 }
 
 /***
+ * Fetches an asset from the auction specified in the TCP request, and
+ * sends a response containing the file data.
+ * 
+ * @param seocket_fd The socket that contains the auction number
+*/
+void show_asset_handling(int socket_fd) {
+    char aid[32], *ptr;
+
+    memset(aid, 0, sizeof aid);
+    ptr = aid;
+
+    int i = 0;
+    while(server_tcp_receive(socket_fd, ptr, 1) > 0 && i < 32) {
+        if (*ptr == '\n') {
+            *ptr = '\0';
+            break;
+        }
+        ptr++;
+    }
+
+    if(!verify_format_AID(aid)) {
+        memset(aid, 0, sizeof aid);
+        strcpy(aid, "ERR\n");
+        server_tcp_send(socket_fd, aid, strlen(aid));
+        return;
+    }
+
+    printf("%d\n", ShowAsset(aid, socket_fd));
+}
+
+/***
  * Receives an UDP message, processes it and sends its corresponding response
  * depending on the type of message.
  * 
@@ -756,8 +787,6 @@ int handle_tcp_request() {
         return -1;
     }
 
-    printf("buffer: %s\n", buffer);
-
     //? Each routine should have the following parameters:
     //? - the socket_fd that represents the socket connection 
     //? eg. login_handling(int socket_fd)
@@ -769,7 +798,7 @@ int handle_tcp_request() {
     } else if(!strcmp(buffer, "CLS ")) {
         close_auction_handling(socket_fd);
     } else if(!strcmp(buffer, "SAS ")) {
-        // TODO Show asset handling routine
+        show_asset_handling(socket_fd);
     } else if(!strcmp(buffer, "BID ")) {
         // TODO Bid handling routine
     } else {
