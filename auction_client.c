@@ -413,19 +413,17 @@ void openAuction(int arg_count, char arg_values[][128]) {
     memset(buffer, 0, sizeof buffer);
 
     tcp_receive(buffer, sizeof buffer);
-    TCP_free();
 
     printf("%s", buffer);
     char *token = strtok(buffer, " ");
 
     if (strcmp(token, "ROA")) {
         printf("Open auction: Invalid response from server.\n");
+        TCP_free();
         return;
     }
 
     token = strtok(NULL, " ");
-
-    puts("chegou aqui");
 
     if (!strcmp(token, "NOK\n")) {
         printf("Could not open auction.\n");
@@ -439,9 +437,9 @@ void openAuction(int arg_count, char arg_values[][128]) {
     }
     else {
         printf("Open auction: Invalid response from server.\n");
-        return;
     }
 
+    TCP_free();
     return;
 
 }

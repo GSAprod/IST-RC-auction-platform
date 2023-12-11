@@ -30,6 +30,7 @@ int sendFile(char * filename, long fsize) {
 		}
 		fsize -= read_size;
 		tcp_send(buffer, read_size);
+		printf("read_size: %d\n", read_size);
 	}
 	
 	close(fd);
@@ -68,6 +69,19 @@ int receiveFile(char * filename, long fsize, char * beginning_bytes, int beginni
 	return 0;
 }
 
+/**
+ * @brief Receives a file from client and saves it to disk.
+ * 
+ * This function receives a file from a client using a tcp socket connection and saves it to disk.
+ * The file is received in chunks and written to the specified file.
+ * 
+ * @param filename The name of the file to be saved.
+ * @param fsize The size of the file to be received.
+ * @param socket_fd The file descriptor of the socket connection.
+ * @param beginning_bytes The initial bytes of the file to be received.
+ * @param beginning_bytes_size The size of the initial bytes.
+ * @return 0 if the file is received and saved successfully, -1 otherwise.
+ */
 int ServerReceiveFile(char * filename, long fsize, int socket_fd, char * beginning_bytes, int beginning_bytes_size) {
 	int fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0666);
 	if (fd == -1) {
@@ -83,8 +97,12 @@ int ServerReceiveFile(char * filename, long fsize, int socket_fd, char * beginni
 		fsize -= written_size;
 	}
 
+	printf("beginning_bytes_size: %d\n", beginning_bytes_size);
+	printf("fsize: %ld\n", fsize);
+
 	while (fsize > 0) {
 		char buffer[512];
+		memset(buffer, 0, sizeof(buffer));
 		int read_size = server_tcp_receive(socket_fd,buffer, fsize > 512 ? 512 : fsize);
 		printf("read_size: %d\n", read_size);
 		if (read_size == -1) {

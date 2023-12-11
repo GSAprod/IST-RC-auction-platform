@@ -210,7 +210,7 @@ int CreateAuction(char * UID, char*name, char * asset_fname, char * start_value,
 	char AID[4];
 	memset(AID, 0, sizeof(AID));
 	int i = 0;
-	for (i = 0; i < 1000; i++) {
+	for (i = 1; i < 1000; i++) {
 		sprintf(fileName, "ASDIR/AUCTIONS/%03d", i);
 		if (checkAssetFile(fileName) == 0) {
 			sprintf(AID, "%03d", i);
@@ -268,6 +268,7 @@ int CreateAuction(char * UID, char*name, char * asset_fname, char * start_value,
 	sprintf(fileName, "ASDIR/AUCTIONS/%s/ASSET/%s", AID, asset_fname);
 	long fsize = atol(file_size);
 	//TODO: Create asset file (from TCP)
+	printf("File sizessssss: %ld\n", fsize);
 	ServerReceiveFile(fileName, fsize, socket_fd, remaining_message, strlen(remaining_message));
 
 	memset(fileName, 0, sizeof(fileName));

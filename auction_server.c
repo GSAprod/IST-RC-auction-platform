@@ -476,7 +476,7 @@ void list_auctions_handling(char * message, struct sockaddr* to_addr, socklen_t 
 
 void open_auction_handling(int socket_fd) {
     char buffer[256];
-    char UID[6], password[8], name[32], start_value[8], timea_active[10], Fname[32], Fsize[64];
+    char UID[7], password[9], name[32], start_value[16], timea_active[12], Fname[32], Fsize[64];
     char res[24];
     char remaining[256];
 
@@ -490,8 +490,20 @@ void open_auction_handling(int socket_fd) {
         return;
     }
 
+    memset(UID, 0, sizeof UID);
+    memset(password, 0, sizeof password);
+    memset(name, 0, sizeof name);
+    memset(start_value, 0, sizeof start_value);
+    memset(timea_active, 0, sizeof timea_active);
+    memset(Fname, 0, sizeof Fname);
+    memset(Fsize, 0, sizeof Fsize);
+    memset(remaining, 0, sizeof remaining);
+
+
+    if (is_mode_verbose)
+        printf("Open auction: Received message: %s\n", buffer);
+
     char * token = strtok(buffer, " ");
-    token = strtok(NULL, " ");
     strcpy(UID, token);
     token = strtok(NULL, " ");
     strcpy(password, token);
@@ -508,6 +520,14 @@ void open_auction_handling(int socket_fd) {
     token = strtok(NULL, "\n");
     strcpy(remaining, token);
 
+    if (is_mode_verbose) {
+        printf("Open auction: User %s is trying to open an auction.\n", UID);
+        printf("Open auction: Name: %s\n", name);
+        printf("Open auction: Start value: %s\n", start_value);
+        printf("Open auction: Time active: %s\n", timea_active);
+        printf("Open auction: File name: %s\n", Fname);
+        printf("Open auction: File size: %s\n", Fsize);
+    }
 
     // Check if the message is valid
     //TODO: Verify all this shit
@@ -704,7 +724,7 @@ int handle_tcp_request() {
     //? the socket_fd passed into the routine.
     //? Check the "else" clause for an example of how the responses should be sent
     if(!strcmp(buffer, "OPA ")) {
-        // TODO Open auction handling routine
+        open_auction_handling(socket_fd);
     } else if(!strcmp(buffer, "CLS ")) {
         close_auction_handling(socket_fd);
     } else if(!strcmp(buffer, "SAS ")) {
