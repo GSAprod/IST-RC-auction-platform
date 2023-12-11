@@ -12,17 +12,17 @@
 #include <time.h>
 
 typedef struct BIDLIST {
-	char AID[3];
-	char value[6];
-	char UID[6];
-	char datetime[19];
-	char fulltime[6];
-} BIDLIST[];
+	char AID[4];
+	char value[12];
+	char UID[7];
+	char datetime[20];
+	char fulltime[12];
+} BIDLIST;
 
 typedef struct AUCTIONLIST {
-	char AID[3];
+	char AID[4];
 	int active;
-} AUCTIONLIST[];
+} AUCTIONLIST;
 
 //int DEBUG = 1; 
 
@@ -159,7 +159,7 @@ int GetAuctionInfo(char * AID);
  * 
  * @returns number of auctions found
 */
-int GetAuctionsList(struct AUCTIONLIST * auction_list);
+int GetAuctionsList(struct AUCTIONLIST ** auction_list);
 
 /***
  * Function that gets all the auctions hosted by a user
@@ -168,7 +168,7 @@ int GetAuctionsList(struct AUCTIONLIST * auction_list);
  * 
  * @returns number of auctions found
 */
-int GetAuctionsListByUser(char * UID, struct AUCTIONLIST * auction_list);
+int GetAuctionsListByUser(char * UID, struct AUCTIONLIST ** auction_list);
 
 /*****
  * Function that gets all the auctions bidded by a user
@@ -177,7 +177,7 @@ int GetAuctionsListByUser(char * UID, struct AUCTIONLIST * auction_list);
  * 
  * @returns number of auctions found
 */
-int GetAuctionsListByUserBidded(char * UID, struct AUCTIONLIST * auction_list);
+int GetAuctionsListByUserBidded(char * UID, struct AUCTIONLIST ** auction_list);
 
 /***
  * Function that checks if user password is correct
