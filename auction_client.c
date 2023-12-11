@@ -369,7 +369,7 @@ void listAllAuctions(int arg_count) {
 }
 
 void openAuction(int arg_count, char arg_values[][128]) {
-    char buffer[128];
+    char buffer[256];
     char * name = arg_values[1];
     char * fname = arg_values[2];
     char * start_value = arg_values[3];
@@ -424,6 +424,8 @@ void openAuction(int arg_count, char arg_values[][128]) {
     }
 
     token = strtok(NULL, " ");
+
+    puts("chegou aqui");
 
     if (!strcmp(token, "NOK\n")) {
         printf("Could not open auction.\n");

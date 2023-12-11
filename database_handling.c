@@ -201,7 +201,7 @@ int Unregister(char * UID) {
 	return 0;
 }
 
-int CreateAuction(char * UID, char*name, char * asset_fname, char * start_value, char * time_active, char * start_datetime, char * start_fulltime) {
+int CreateAuction(char * UID, char*name, char * asset_fname, char * start_value, char * time_active, char * start_datetime, time_t start_fulltime, char * file_size, int socket_fd, char * remaining_message) {
 	if (DEBUG) printf("Creating auction\n");
 
 	char fileName[256];
@@ -239,15 +239,16 @@ int CreateAuction(char * UID, char*name, char * asset_fname, char * start_value,
 		return -1;
 	}
 
-	char * start_info = malloc(strlen(UID) + strlen(name) + strlen(asset_fname) + strlen(start_value) + strlen(time_active) + strlen(start_datetime) + strlen(start_fulltime) + 7);
+	char * start_info = malloc(strlen(UID) + strlen(name) + strlen(asset_fname) + strlen(start_value) + strlen(time_active) + strlen(start_datetime) + sizeof(start_fulltime) + 7);
 
 	//Write to file info about the auction
-	sprintf(start_info, "%s %s %s %s %s %s %s", UID, name, asset_fname, start_value, time_active, start_datetime, start_fulltime);
+	sprintf(start_info, "%s %s %s %s %s %s %ld", UID, name, asset_fname, start_value, time_active, start_datetime, start_fulltime);
 	
 	size_t written = fwrite(start_info, 1, strlen(start_info), file);
 	if (written != strlen(start_info)) {
 		if (DEBUG) printf("Error writing to Start_AID file\n");
 		fclose(file);
+		free(start_info);
 		return -1;
 	}
 
@@ -262,7 +263,12 @@ int CreateAuction(char * UID, char*name, char * asset_fname, char * start_value,
 		if (DEBUG) printf("Error creating asset directory\n");
 		return -1;
 	}
+
+	memset(fileName, 0, sizeof(fileName));
+	sprintf(fileName, "ASDIR/AUCTIONS/%s/ASSET/%s", AID, asset_fname);
+	long fsize = atol(file_size);
 	//TODO: Create asset file (from TCP)
+	ServerReceiveFile(fileName, fsize, socket_fd, remaining_message, strlen(remaining_message));
 
 	memset(fileName, 0, sizeof(fileName));
 
@@ -272,10 +278,20 @@ int CreateAuction(char * UID, char*name, char * asset_fname, char * start_value,
 		if (DEBUG) printf("Error creating bids directory\n");
 		return -1;
 	}
+
+	memset(fileName, 0, sizeof(fileName));
+
+	sprintf(fileName, "ASDIR/USERS/%s/HOSTED/%s.txt", UID, AID);
+	file = fopen(fileName, "w");
+	if (file == NULL) {
+		if (DEBUG) printf("Error creating hosted file\n");
+		return -1;
+	}
+	fclose(file);
 	
-	return 0;
+	return i;
 }
-/*
+
 int CloseAuction(char * AID, char * UID) {
 	if (DEBUG) printf("Closing auction %s\n", AID);
 
@@ -333,34 +349,63 @@ int CloseAuction(char * AID, char * UID) {
 	}
 
 	time_t now;
-	struct tm * timeinfo;
-	char end_datetime[19];
+	char end_datetime_str[20];
 
-	memset(end_datetime, 0, sizeof(end_datetime));
+	memset(end_datetime_str, 0, sizeof(end_datetime_str));
 
 	time(&now);
 
-	timeinfo = gmtime(&now);
+	timeToString(now, end_datetime_str);
 
-	sprintf(end_datetime, "%04d-%02d-%02d %02d:%02d:%02d", timeinfo->tm_year + 1900, timeinfo->tm_mon + 1, timeinfo->tm_mday, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+	if (DEBUG) printf("End datetime: %s\n", end_datetime_str);
 
-	if (DEBUG) printf("End datetime: %s\n", end_datetime);
-
-	size_t written = fwrite(end_datetime, 1, strlen(end_datetime), file);
-	if (written != strlen(end_datetime)) {
+	size_t written = fwrite(end_datetime_str, 1, strlen(end_datetime_str), file);
+	if (written != strlen(end_datetime_str)) {
 		if (DEBUG) printf("Error writing to end file\n");
 		fclose(file);
 		return -4;
 	}
 
-	// TODO: Finish calculating time elapsed
-	// written = fwrite(" ", 1, 1, file);
+	written = fwrite(" ", 1, 1, file);
+	if (written != 1) {
+		if (DEBUG) printf("Error writing to end file\n");
+		fclose(file);
+		return -4;
+	}
+
+	FILE * start_file = fopen("ASDIR/AUCTIONS/%s/START_%s.txt", "r");
+
+	char start_info[256];
+
+	if (fread(start_info, 1, 256, start_file) <= 0) {
+		if (DEBUG) printf("Error reading from start file\n");
+		return -4;
+	}
+
+
+	char start_datetime[20];
+
+	token = strtok(start_info, " "); //UID
+	token = strtok(NULL, " "); //Name
+	token = strtok(NULL, " "); //Asset filename
+	token = strtok(NULL, " "); //Start value
+	token = strtok(NULL, " "); //Time active
+	token = strtok(NULL, " "); //Start date
+	token = strtok(NULL, " "); //Start time
+	token = strtok(NULL, " "); //Start fulltime (time_t)
+	strcpy(start_datetime, token);
+
+	written = fwrite(start_datetime, 1, strlen(start_datetime), file);
+	if (written != strlen(start_datetime)) {
+		if (DEBUG) printf("Error writing to end file\n");
+		fclose(file);
+		return -4;
+	}
 
 	fclose(file);
 
 	return 0;
 }
-*/
 
 int Bid(char * AID, char * UID, char * value, char * datetime, char * fulltime) {
 	if (DEBUG) printf("Bidding on auction %s\n", AID);
@@ -443,6 +488,17 @@ int CheckUserLogged(char * UID, char * password) {
 	}
 }
 
+//Function to convert from time_t to string
+void timeToString(time_t time, char * time_string) {
+	struct tm * timeinfo;
+
+	timeinfo = gmtime(&time);
+
+	sprintf(time_string, "%04d-%02d-%02d %02d:%02d:%02d", timeinfo->tm_year + 1900, timeinfo->tm_mon + 1, timeinfo->tm_mday, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+
+	return;
+}
+
 int LoadBid(char * pathname, struct BIDLIST bid) {
 	if (DEBUG) printf("Loading bid from file %s\n", pathname);
 	
@@ -475,13 +531,12 @@ int LoadBid(char * pathname, struct BIDLIST bid) {
 	return 0;
 }
 
-/*
 int GetBidList(char * AID, struct BIDLIST * bidlist) {
 
 	struct dirent **filelist;
 	int n_entries, n_bids, len;
 	char dirname[32];
-	char pathname[64];
+	char pathname[564]; //! Change this shit
 
 	sprintf(dirname, "ASDIR/AUCTIONS/%s/BIDS", AID);
 
@@ -550,114 +605,38 @@ int checkIfAuctionEnded(char * AID) {
 
 		char file_data[256];
 
-		char start_datetime[19];
-		char time_to_end[6];
+		char time_active[10];
+		char start_date_str[10];
 
-		memset(start_datetime, 0, sizeof(start_datetime));
-		memset(time_to_end, 0, sizeof(time_to_end));
+		memset(time_active, 0, sizeof(time_active));
+		memset(start_date_str, 0, sizeof(start_date_str));
 
-		if (fread(file_data, 1, 19, file) <= 0) {
+
+		if (fread(file_data, 1, sizeof(file_data), file) <= 0) {
 			if (DEBUG) printf("Error reading from start file\n");
 			return -1;
 		}
 
-		char * token = strtok(file_data, " ");
-		token = strtok(NULL, " ");
-		token = strtok(NULL, " ");
-		token = strtok(NULL, " ");
-		token = strtok(NULL, " ");
-		strcpy(start_datetime, token);
-		token = strtok(NULL, " ");
-		strcpy(time_to_end, token);
-
-		if (DEBUG) printf("Start datetime: %s\nStart time_to_end: %s\n", start_datetime, time_to_end);
+		char * token = strtok(file_data, " "); //UID
+		token = strtok(NULL, " "); //Name
+		token = strtok(NULL, " "); //Asset filename
+		token = strtok(NULL, " "); //Start value
+		token = strtok(NULL, " "); //Time active
+		strcpy(time_active, token);
+		token = strtok(NULL, " "); //Start date
+		token = strtok(NULL, " "); //Start time
+		token = strtok(NULL, " "); //Start fulltime (time_t)
+		strcpy(start_date_str, token);
 
 		fclose(file);
 
 		time_t now;
-		struct tm * timeinfo;
-		char end_datetime[19];
-		char now_datetime[19];
-
-		memset(now_datetime, 0, sizeof(now_datetime));
-		memset(end_datetime, 0, sizeof(end_datetime));
+		time_t start_date = atoi(start_date_str);
+		time_t end_date = start_date + atoi(time_active);
 
 		time(&now);
 
-		timeinfo = gmtime(&now);
-
-		sprintf(now_datetime, "%04d-%02d-%02d %02d:%02d:%02d", timeinfo->tm_year + 1900, timeinfo->tm_mon + 1, timeinfo->tm_mday, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
-
-		if (DEBUG) printf("Now datetime: %s\n", now_datetime);
-
-		int time_to_end_int = atoi(time_to_end);
-
-
-		// ? ESTA PORRA TA MUITO CONFUSA, DEPOIS TENHO QUE REFAZER ISTO
-		//calculate end datetime from start datetime and time_to_end
-		int start_year, start_month, start_day, start_hour, start_min, start_sec;
-		int end_year, end_month, end_day, end_hour, end_min, end_sec;
-		int remaining;
-
-		sscanf(start_datetime, "%04d-%02d-%02d %02d:%02d:%02d", &start_year, &start_month, &start_day, &start_hour, &start_min, &start_sec);
-
-		end_sec = start_sec + time_to_end_int;
-		remaining = end_sec / 60;
-		end_sec = end_sec % 60;
-
-		if (remaining > 0) {
-			end_min = start_min + remaining;
-			remaining = end_min / 60;
-			end_min = end_min % 60;
-
-			if (remaining > 0) {
-				end_hour = start_hour + remaining;
-				remaining = end_hour / 24;
-				end_hour = end_hour % 24;
-
-				if (remaining > 0) {
-					end_day = start_day + remaining;
-					remaining = end_day / 30;
-					end_day = end_day % 30;
-
-					if (remaining > 0) {
-						end_month = start_month + remaining;
-						remaining = end_month / 12;
-						end_month = end_month % 12;
-
-						if (remaining > 0) {
-							end_year = start_year + remaining;
-						} else {
-							end_year = start_year;
-						}
-					} else {
-						end_month = start_month;
-						end_year = start_year;
-					}
-				} else {
-					end_day = start_day;
-					end_month = start_month;
-					end_year = start_year;
-				}
-			} else {
-				end_hour = start_hour;
-				end_day = start_day;
-				end_month = start_month;
-				end_year = start_year;
-			}
-		} else {
-			end_min = start_min;
-			end_hour = start_hour;
-			end_day = start_day;
-			end_month = start_month;
-			end_year = start_year;
-		}
-
-		sprintf(end_datetime, "%04d-%02d-%02d %02d:%02d:%02d", end_year, end_month, end_day, end_hour, end_min, end_sec);
-
-		if (DEBUG) printf("End datetime: %s\n", end_datetime);
-
-		if (strcmp(now_datetime, end_datetime) > 0) {
+		if (end_date <= now) {
 			if (DEBUG) printf("Auction %s ended\n", AID);
 			memset(fileName, 0, sizeof(fileName));
 			sprintf(fileName, "ASDIR/AUCTIONS/%s/END_%s.txt", AID, AID);
@@ -666,6 +645,13 @@ int checkIfAuctionEnded(char * AID) {
 				if (DEBUG) printf("Error creating end file\n");
 				return -1;
 			}
+
+			char end_datetime[20];
+			char time_to_end[10];
+
+			memset(end_datetime, 0, sizeof(end_datetime));
+
+			timeToString(end_date, end_datetime);
 
 			size_t written = fwrite(end_datetime, 1, strlen(end_datetime), file);
 			if (written != strlen(end_datetime)) {
@@ -680,6 +666,8 @@ int checkIfAuctionEnded(char * AID) {
 				fclose(file);
 				return -1;
 			}
+
+			sprintf(time_to_end, "%ld", end_date - now);
 
 			written = fwrite(time_to_end, 1, strlen(time_to_end), file);
 			if (written != strlen(time_to_end)) {
@@ -696,7 +684,6 @@ int checkIfAuctionEnded(char * AID) {
 		}
 	}
 }
-*/
 
 int GetAuctionInfo(char * AID) {
 	char fileName[256];
@@ -751,8 +738,7 @@ int GetAuctionInfo(char * AID) {
 
 	fclose(file);
 
-	/*
-	struct  BIDLIST * bidlist;
+	struct BIDLIST * bidlist = NULL;
 
 	int n_bids = GetBidList(AID, bidlist);
 	if (DEBUG) printf("Number of bids: %d\n", n_bids);
@@ -774,7 +760,6 @@ int GetAuctionInfo(char * AID) {
 	} else {
 		if (DEBUG) printf("Error checking if auction %s ended\n", AID);
 	}
-	*/
 	return 0;
 }
 

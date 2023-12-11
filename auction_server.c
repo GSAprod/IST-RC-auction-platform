@@ -357,7 +357,7 @@ void list_myauctions_handling(char* message, struct sockaddr* to_addr, socklen_t
     }
     strcpy(userID, token);
 
-    struct AUCTIONLIST * auction_list;
+    struct AUCTIONLIST * auction_list = NULL;
     num_auctions = GetAuctionsListByUserBidded(userID, auction_list);
     if (num_auctions == -1) {
         if (is_mode_verbose) printf("List my auctions: User %s is not logged in.\n", userID);
@@ -393,7 +393,7 @@ void list_mybids_handling(char* message, struct sockaddr* to_addr, socklen_t to_
     char* token, *ptr;
     char userID[7], response[8192];
     int num_auctions;
-    struct AUCTIONLIST * bid_list;
+    struct AUCTIONLIST * bid_list = NULL;
 
     strtok(message, " ");    // This only gets the "UNR " string
 
@@ -445,7 +445,7 @@ void list_auctions_handling(char * message, struct sockaddr* to_addr, socklen_t 
     char *ptr;
     char response[8192];
     int num_auctions;
-    struct AUCTIONLIST * auction_list;
+    struct AUCTIONLIST * auction_list = NULL;
 
     strtok(message, " ");    // This only gets the "UNR " string
 
@@ -462,7 +462,6 @@ void list_auctions_handling(char * message, struct sockaddr* to_addr, socklen_t 
     ptr = response + 6;
     char aux[6];
     for(int i = 0; i < num_auctions; i++) {
-        // TODO Fazer string
         sprintf(aux, " %s %d", auction_list[i].AID, auction_list[i].active);
         strcpy(ptr, aux);
         ptr += strlen(aux);
@@ -471,10 +470,74 @@ void list_auctions_handling(char * message, struct sockaddr* to_addr, socklen_t 
 
     free(auction_list);
 
-    // TODO Enviar string
     server_udp_send(response, to_addr, to_addr_len);
 
 }  
+
+void open_auction_handling(int socket_fd) {
+    char buffer[256];
+    char UID[6], password[8], name[32], start_value[8], timea_active[10], Fname[32], Fsize[64];
+    char res[24];
+    char remaining[256];
+
+    // Receive some bytes of the message
+    memset(buffer, 0, sizeof buffer);
+
+    if (server_tcp_receive(socket_fd, buffer, 256) == -1) {
+        if (is_mode_verbose)
+            printf("Failed to receive TCP message. Closing connection.\n");
+        server_tcp_close(socket_fd);
+        return;
+    }
+
+    char * token = strtok(buffer, " ");
+    token = strtok(NULL, " ");
+    strcpy(UID, token);
+    token = strtok(NULL, " ");
+    strcpy(password, token);
+    token = strtok(NULL, " ");
+    strcpy(name, token);
+    token = strtok(NULL, " ");
+    strcpy(start_value, token);
+    token = strtok(NULL, " ");
+    strcpy(timea_active, token);
+    token = strtok(NULL, " ");
+    strcpy(Fname, token);
+    token = strtok(NULL, " ");
+    strcpy(Fsize, token);
+    token = strtok(NULL, "\n");
+    strcpy(remaining, token);
+
+
+    // Check if the message is valid
+    //TODO: Verify all this shit
+    if (CheckUserLogged(UID, password) != 1) {
+        sprintf(res, "ROA NLG\n");
+        server_tcp_send(socket_fd, res, strlen(res));
+        return;
+    }
+
+    char start_time[20];
+    time_t now;
+
+    time(&now);
+
+    timeToString(now, start_time);
+
+    int AID = CreateAuction(UID, name, Fname, start_value, timea_active, start_time, now, Fsize, socket_fd, remaining);
+
+    if (AID <= 0) {
+        sprintf(res, "ROA NOK\n");
+        server_tcp_send(socket_fd, res, strlen(res));
+        return;
+    }
+
+    sprintf(res, "ROA OK %03d\n", AID);
+    server_tcp_send(socket_fd, res, strlen(res));
+
+    return;
+
+}
 
 void close_auction_handling(int socket_fd) {
     char buffer[32];
@@ -510,7 +573,6 @@ void close_auction_handling(int socket_fd) {
         return;
     }
 
-    /*
     status = CloseAuction(AID, UID);
     switch (status) {
         case 0:
@@ -538,9 +600,6 @@ void close_auction_handling(int socket_fd) {
             server_tcp_close(socket_fd);
             return;
     }
-    */
-
-
 
     return;
 }

@@ -26,12 +26,12 @@ typedef struct AUCTIONLIST {
 
 //int DEBUG = 1; 
 
-/*
+/***
  * Function that initializes the database. If db is already initialized, it does nothing
 */
 void InitDatabase();
 
-/*
+/***
  * Function that creates a new user
  * @param UID: User ID
  * @param password: User password
@@ -40,7 +40,7 @@ void InitDatabase();
 */
 int CreateUser(char * UID, char * password);
 
-/*
+/***
  * Function that logs in a user
  * @param UID: User ID
  * @param password: User password
@@ -49,7 +49,7 @@ int CreateUser(char * UID, char * password);
 */
 int Login(char * UID, char * password);
 
-/*
+/***
  * Function that closes an auction. Doenn't verify if user is logged in
  * @param AID: Auction ID
  * @param UID: User ID
@@ -58,7 +58,7 @@ int Login(char * UID, char * password);
 */
 int CloseAuction(char * AID, char * UID);
 
-/*
+/***
  * Function that logs out a user
  * @param UID: User ID
  * 
@@ -66,7 +66,7 @@ int CloseAuction(char * AID, char * UID);
 */
 int Logout(char * UID);
 
-/*
+/***
  * Function that unregisters a user
  * @param UID: User ID
  * 
@@ -74,7 +74,7 @@ int Logout(char * UID);
 */
 int Unregister(char * UID);
 
-/*
+/*****
  * Function that creates a new auction
  * @param UID: User ID
  * @param name: Auction name
@@ -83,12 +83,15 @@ int Unregister(char * UID);
  * @param time_active: Auction time active (in seconds)
  * @param start_datetime: Auction start datetime
  * @param start_fulltime: Time since auction start (in seconds)
+ * @param file_size: Asset file size (in String)
+ * @param socket_fd: Socket file descriptor
+ * @param remaining_message: Remaining message to be read from socket
  * 
  * @returns 0 if no error occurred, -1 if an error occurred
 */
-int CreateAuction(char * UID, char*name, char * asset_fname, char * start_value, char * time_active, char * start_datetime, char * start_fulltime);
+int CreateAuction(char * UID, char*name, char * asset_fname, char * start_value, char * time_active, char * start_datetime, time_t start_fulltime, char * file_size, int socket_fd, char * remaining_message);
 
-/*
+/***
  * Function that creates a new bid
  * @param AID: Auction ID
  * @param UID: User ID
@@ -100,7 +103,7 @@ int CreateAuction(char * UID, char*name, char * asset_fname, char * start_value,
 */
 int Bid(char * AID, char * UID, char * value, char * datetime, char * fulltime);
 
-/*
+/***
  * Function that loads a bid from a file to a BIDLIST struct
  * @param pathname: path to bid file
  * @param bid: BIDLIST struct where the bid will be stored
@@ -109,7 +112,7 @@ int Bid(char * AID, char * UID, char * value, char * datetime, char * fulltime);
 */
 int LoadBid(char * pathname, struct BIDLIST bid);
 
-/*
+/***
  * Function that checks if a user is logged in
  * @param UID: User ID
  * 
@@ -117,7 +120,7 @@ int LoadBid(char * pathname, struct BIDLIST bid);
 */
 int CheckUserLogged(char * UID, char * password);
 
-/*
+/***
  * Function that searches for the 50 highest bids on an auction
  * @param AID: Auction ID
  * @param bidlist: pointer to where the bidlist will be stored (MUST NOT be allocated. MUST be freed after use)
@@ -126,15 +129,15 @@ int CheckUserLogged(char * UID, char * password);
  */
 int GetBidList(char * AID, struct BIDLIST * bidlist);
 
-/*
+/***
  * Function that checks if an auction ended
  * @param AID: Auction ID
  * 
  * @returns 1 if auction ended, 0 if auction did not end, -1 if an error occured
 */
-//int checkIfAuctionEnded(char * AID);
+int checkIfAuctionEnded(char * AID);
 
-/*
+/***
  * Function that gets infor for a specific auction
  * @param AID: Auction ID
  * 
@@ -142,7 +145,7 @@ int GetBidList(char * AID, struct BIDLIST * bidlist);
 */
 int GetAuctionInfo(char * AID);
 
-/*
+/***
  * Function that gets all the auctions in the system
  * @param auction_list: pointer to where the auction list will be stored (MUST NOT be allocated. MUST be freed after use)
  * 
@@ -150,7 +153,7 @@ int GetAuctionInfo(char * AID);
 */
 int GetAuctionsList(struct AUCTIONLIST * auction_list);
 
-/*
+/***
  * Function that gets all the auctions hosted by a user
  * @param UID: User ID
  * @param auction_list: pointer to where the auction list will be stored (MUST NOT be allocated. MUST be freed after use)
@@ -159,7 +162,7 @@ int GetAuctionsList(struct AUCTIONLIST * auction_list);
 */
 int GetAuctionsListByUser(char * UID, struct AUCTIONLIST * auction_list);
 
-/***
+/*****
  * Function that gets all the auctions bidded by a user
  * @param UID: User ID
  * @param auction_list: pointer to where the auction list will be stored (MUST NOT be allocated. MUST be freed after use)
@@ -168,7 +171,7 @@ int GetAuctionsListByUser(char * UID, struct AUCTIONLIST * auction_list);
 */
 int GetAuctionsListByUserBidded(char * UID, struct AUCTIONLIST * auction_list);
 
-/*
+/***
  * Function that checks if user password is correct
  * @param UID: User ID
  * @param password: User password
@@ -176,5 +179,12 @@ int GetAuctionsListByUserBidded(char * UID, struct AUCTIONLIST * auction_list);
  * @returns 1 if password is correct, 0 if password is incorrect, -1 if an error occurred
  */
 int CheckUserPassword(char * UID, char * password);
+
+/***
+ * Function that converts a time_t to a string
+ * @param time: time_t to be converted
+ * @param time_string: array where the string will be stored
+*/
+void timeToString(time_t time, char * time_string);
 
 #endif
