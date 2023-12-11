@@ -70,6 +70,27 @@ int receiveFile(char * filename, long fsize, char * beginning_bytes, int beginni
 	return 0;
 }
 
+/***
+ * Loads a file from the disk and sends into the client using the TCP socket.
+ * 
+ * @param fd The descriptor of the file to be read
+ * @param fsize The file size
+ * @param socket_fd The socket to send the file data
+ * @return 0 if the file is sent successfully, -1 otherwise
+*/
+int serverSendFile(int fd, long fsize, int socket_fd) {
+	while (fsize > 0) {
+		char buffer[512];
+		int read_size = read(fd, buffer, fsize > 512 ? 512 : fsize);
+		if (read_size == -1) {
+			return -1;
+		}
+		server_tcp_send(socket_fd, buffer, read_size);
+		fsize -= read_size;
+	}
+	return 0;
+}
+
 /**
  * @brief Receives a file from client and saves it to disk.
  * 

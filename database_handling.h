@@ -104,6 +104,14 @@ int CreateAuction(char * UID, char*name, char * asset_fname, char * start_value,
 int Bid(char * AID, char * UID, char * value, char * datetime, char * fulltime);
 
 /***
+ * Opens the asset inside the folder of an auction and sends its data using TCP
+ * 
+ * @param AID the ID of the auction where the asset is located
+ * @param socket_fd The socket where the file data will be sent
+*/
+int ShowAsset(char * AID, int socket_fd);
+
+/***
  * Function that loads a bid from a file to a BIDLIST struct
  * @param pathname: path to bid file
  * @param bid: BIDLIST struct where the bid will be stored
