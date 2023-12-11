@@ -512,7 +512,7 @@ int LoadBid(char * pathname, struct BIDLIST bid) {
 	return 0;
 }
 
-int GetBidList(char * AID, struct BIDLIST * bidlist) {
+int GetBidList(char * AID, struct BIDLIST ** bidlist) {
 
 	struct dirent **filelist;
 	int n_entries, n_bids, len;
@@ -532,7 +532,7 @@ int GetBidList(char * AID, struct BIDLIST * bidlist) {
 
 	len = n_entries >= 50 ? 50 : n_entries;
 
-	bidlist = malloc((len) * sizeof(struct BIDLIST));
+	*bidlist = (struct BIDLIST*)malloc((len) * sizeof(struct BIDLIST));
 
 	while (n_entries--) {
 		len = strlen(filelist[n_bids]->d_name);
@@ -540,7 +540,7 @@ int GetBidList(char * AID, struct BIDLIST * bidlist) {
 		if (len == 10) {
 			sprintf(pathname, "ASDIR/AUCTIONS/%s/BIDS/%s", AID, filelist[n_bids]->d_name);
 			if (DEBUG) printf("Pathname: %s\n", pathname);
-			if (LoadBid(pathname, bidlist[n_bids])) {
+			if (LoadBid(pathname, (*bidlist)[n_bids])) {
 				++n_bids;
 			}
 			free(filelist[n_entries]);
@@ -666,7 +666,7 @@ int checkIfAuctionEnded(char * AID) {
 	}
 }
 
-int GetAuctionInfo(char * AID) {
+int GetAuctionInfo(char * AID, char * message_ptr) {
 	char fileName[256];
 
 	sprintf(fileName, "ASDIR/AUCTIONS/%s/START_%s.txt", AID, AID);
@@ -690,12 +690,14 @@ int GetAuctionInfo(char * AID) {
 		return -1;
 	}
 
-	char UID[6];
+	fclose(file);
+
+	char UID[7];
 	char name[32];
 	char asset_fname[32];
-	char start_value[6];
-	char time_active[6];
-	char start_datetime[19];
+	char start_value[16];
+	char time_active[16];
+	char start_datetime[20];
 
 	char * token = strtok(auction_info, " ");
 	strcpy(UID, token);
@@ -717,16 +719,19 @@ int GetAuctionInfo(char * AID) {
 
 	if (DEBUG) printf("UID: %s\nName: %s\nAsset filename: %s\nStart value: %s\nTime active: %s\nStart datetime: %s\n", UID, name, asset_fname, start_value, time_active, start_datetime);
 
-	fclose(file);
+	sprintf(message_ptr, "%s %s %s %s %s %s", UID, name, asset_fname, start_value, time_active, start_datetime);
+
+	message_ptr = message_ptr + strlen(message_ptr);
 
 	struct BIDLIST * bidlist = NULL;
 
-	int n_bids = GetBidList(AID, bidlist);
+	int n_bids = GetBidList(AID, &bidlist);
 	if (DEBUG) printf("Number of bids: %d\n", n_bids);
 
 	for (int i = 0; i < n_bids; i++) {
 		if (DEBUG) printf("UID: %s\nValue: %s\nDatetime: %s\nFulltime: %s\n", bidlist[i].UID, bidlist[i].value, bidlist[i].datetime, bidlist[i].fulltime);
-		//TODO: HANDLE BIDS HERE
+		sprintf(message_ptr, "\nB %s %s %s %s", bidlist[i].UID, bidlist[i].value, bidlist[i].datetime, bidlist[i].fulltime);
+		message_ptr = message_ptr + strlen(message_ptr);
 	}
 
 	free(bidlist);
@@ -735,12 +740,44 @@ int GetAuctionInfo(char * AID) {
 
 	if (checkIfEnded == 1) {
 		if (DEBUG) printf("Auction %s ended\n", AID);
+		memset(fileName, 0, sizeof(fileName));
+		sprintf(fileName, "ASDIR/AUCTIONS/%s/END_%s.txt", AID, AID);
+		file = fopen(fileName, "r");
+		if (file == NULL) {
+			if (DEBUG) printf("Error opening file\n");
+			return -1;
+		}
+		char end_info[256];
+		if (fread(end_info, 1, 256, file) <= 0) {
+			if (DEBUG) printf("Error reading from end file\n");
+			return -1;
+		}
+
+		fclose(file);
+
+		char end_datetime[20];
+		char time_passed[16];
+
+		memset(end_datetime, 0, sizeof(end_datetime));
+		memset(time_passed, 0, sizeof(time_passed));
+
+		token = strtok(end_info, " ");
+		strcpy(end_datetime, token);
+
+		token = strtok(NULL, " ");
+		strcpy(time_passed, token);
+
+		sprintf(message_ptr, "\nE %s %s", end_datetime, time_passed);
+		message_ptr = message_ptr + strlen(message_ptr);
 		
 	} else if (checkIfEnded == 0) {
 		if (DEBUG) printf("Auction %s did not end\n", AID);
 	} else {
 		if (DEBUG) printf("Error checking if auction %s ended\n", AID);
 	}
+
+	*message_ptr = '\n';
+
 	return 0;
 }
 

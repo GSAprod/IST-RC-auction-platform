@@ -127,7 +127,7 @@ int CheckUserLogged(char * UID, char * password);
  * 
  * @returns number of bids found
  */
-int GetBidList(char * AID, struct BIDLIST * bidlist);
+int GetBidList(char * AID, struct BIDLIST ** bidlist);
 
 /***
  * Function that checks if an auction ended
@@ -140,10 +140,11 @@ int checkIfAuctionEnded(char * AID);
 /***
  * Function that gets infor for a specific auction
  * @param AID: Auction ID
+ * @param message: pointer to beginning of message where the info will be stored
  * 
  * @returns 0 if no error occured or -1 if an error occured
 */
-int GetAuctionInfo(char * AID);
+int GetAuctionInfo(char * AID, char * message);
 
 /***
  * Function that gets all the auctions in the system

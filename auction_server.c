@@ -499,6 +499,35 @@ void list_auctions_handling(char * message, struct sockaddr* to_addr, socklen_t 
     server_udp_send(response, to_addr, to_addr_len);
 }  
 
+void show_record_handling(char * message, struct sockaddr* to_addr, socklen_t to_addr_len) {
+    char response[8192];
+    char * res_ptr = response;
+
+    strtok(message, " ");    // This only gets the "SRC " string
+
+    // Get the user ID and verify if it's a 6-digit number
+    char AID[4];
+    strcpy(AID, strtok(NULL, "\n"));
+    if (!verify_format_AID(AID)) {
+        if (is_mode_verbose) printf("Invalid UDP request made to server.\n");
+        //? Should we check if the status is -1? If so, what should we do?
+        server_udp_send("ERR\n", to_addr, to_addr_len);
+        return;
+    }
+
+    strcpy(res_ptr, "RRC OK ");
+    res_ptr += 7;
+
+    if (GetAuctionInfo(AID, res_ptr) < 0) {
+        if (is_mode_verbose) printf("Show record: Auction %s does not exist.\n", AID);
+        server_udp_send("RSR NOK\n", to_addr, to_addr_len);
+        return;
+    }
+
+    printf("response: %s\n", response);
+    server_udp_send(response, to_addr, to_addr_len);
+}
+
 void open_auction_handling(int socket_fd) {
     char buffer[256];
     char UID[7], password[9], name[32], start_value[16], timea_active[12], Fname[32], Fsize[64];
@@ -712,7 +741,7 @@ int handle_udp_request() {
     } else if (!strcmp(message_type, "LST\n")) {
         list_auctions_handling(buffer, &sender_addr, sender_addr_len);
     } else if (!strcmp(message_type, "SRC ")) {
-        // TODO Auction record handling routine
+        show_record_handling(buffer, &sender_addr, sender_addr_len);
     } else {
         if(is_mode_verbose)
             printf("Invalid UDP request made to server.\n");
