@@ -15,7 +15,7 @@
 // soulindo -> Password
 
 // User credentials (they can be used in many requests to the server)
-char userID[6], userPasswd[8];
+char userID[7], userPasswd[9];
 
 void userLogout() {
     char buffer[128];

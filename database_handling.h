@@ -105,12 +105,10 @@ int GetHighestBid(char * AID);
  * @param AID: Auction ID
  * @param UID: User ID
  * @param value: Bid value
- * @param datetime: Bid datetime
- * @param fulltime: Time since auction start (in seconds)
  * 
- * @returns 0 if no error occurred, -1 if an error occurred
+ * @returns 0 if no error occurred, -1 if auction has ended, -2 if bid has not the highest value, -3 if user is the owner, -4 if an error occurred
 */
-int Bid(char * AID, char * UID, char * value, char * datetime, char * fulltime);
+int Bid(char * AID, char * UID, char * value);
 
 /***
  * Opens the asset inside the folder of an auction and sends its data using TCP

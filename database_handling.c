@@ -410,43 +410,123 @@ int GetHighestBid(char * AID) {
 		return 0;
 	}
 
-	while(n_entries--) {
+	int entries = n_entries;
+
+	while(entries--) {
 		name_len=strlen(filelist[n_entries]->d_name);
 		if (name_len > 2) break;	//Ignore '.' and '..'
 
 		printf("%s\n", filelist[n_entries]->d_name);
+	}	
+
+	for (int i = 0; i < n_entries; i++) {
+		free(filelist[n_entries]);
 	}
 
-	return 1;
+	free(filelist);
+
+	char * str_token = strtok(filelist[n_entries]->d_name, ".");
+
+	return atoi(str_token);
 
 }
 
-int Bid(char * AID, char * UID, char * value, char * datetime, char * fulltime) {
+int Bid(char * AID, char * UID, char * value) {
 	char fileName[256];
 
 	if (DEBUG) printf("Bidding on auction %s\n", AID);
 
-	//TODO: CHECK IF BID VALUE IS HIGHER THAN CURRENT HIGHEST BID
-
 	// TODO TEST THIS
-	//Create bid file
-	sprintf(fileName, "ASDIR/AUCTIONS/%s/BIDS/%s.txt", AID, value);
-	FILE * file = fopen(fileName, "w");
+
+	time_t now;
+	time(&now);
+
+	char datetime[20];
+	char fulltime[20];
+
+	memset(datetime, 0, sizeof(datetime));
+	memset(fulltime, 0, sizeof(fulltime));
+
+	timeToString(now, datetime);
+
+	char buffer[128];
+
+	memset(buffer, 0, sizeof(buffer));
+	memset(fileName, 0, sizeof(fileName));
+
+	sprintf(fileName, "ASDIR/AUCTIONS/%s/START_%s.txt", AID, AID);
+
+	FILE * file = fopen(fileName, "r");
 	if (file == NULL) {
-		if (DEBUG) printf("Error creating bid file\n");
+		if (DEBUG) printf("Error opening file\n");
 		return -1;
+	}
+	if (fread(buffer, 1, sizeof(buffer), file) <= 0) {
+		if (DEBUG) printf("Error reading from start file\n");
+		return -1;
+	}
+
+	fclose(file);
+
+	// READ START auction FILE
+	char UID_DB[6];
+
+	char * token = strtok(buffer, " "); //UID
+
+	token = strtok(NULL, " "); //Name
+	token = strtok(NULL, " "); //Asset filename
+	token = strtok(NULL, " "); //Start value
+	
+	char time_active[10];
+	token = strtok(NULL, " "); //Time active
+	strcpy(time_active, token);
+	
+	token = strtok(NULL, " "); //Start date
+
+	token = strtok(NULL, " "); //Start time
+	time_t end_fulltime = atol(token) + atol(time_active);
+
+	if (end_fulltime <= now) {
+		if (DEBUG) printf("Auction %s ended\n", AID);
+		return -1; //* -1 = auction already ended
+	}
+
+	token = strtok(NULL, " "); //Start fulltime (time_t)
+
+	strcpy(fulltime, token);
+
+	int highestBid = GetHighestBid(AID);
+  printf("highest: %d\n", highestBid);
+
+  if (atoi(value) <= highestBid) {
+  	if (DEBUG) printf("Bid value is lower than the highest bid\n");
+    return -2; //* -2 = bid value is lower than the highest bid
+  }
+
+	if (!strcmp(UID_DB, UID)) {
+		if (DEBUG) printf("User %s is the auction host\n", UID);
+		return -3; //* -3 = user is the auction host
 	}
 
 	char * bid_info = malloc(strlen(UID) + strlen(value) + strlen(datetime) + strlen(fulltime) + 4);
 
 	//Write to file info about the bid
 	sprintf(bid_info, "%s %s %s %s", UID, value, datetime, fulltime);
+
+	//Create bid file
+	memset(fileName, 0, sizeof(fileName));
+	sprintf(fileName, "ASDIR/AUCTIONS/%s/BIDS/%s.txt", AID, value);
+	file = fopen(fileName, "w");
+	if (file == NULL) {
+		if (DEBUG) printf("Error creating bid file\n");
+		return -1;
+	}
 	
 	size_t written = fwrite(bid_info, 1, strlen(bid_info), file);
 	if (written != strlen(bid_info)) {
 		if (DEBUG) printf("Error writing to bid file\n");
 		fclose(file);
-		return -1;
+		return -4;
 	}
 
 	free(bid_info);
@@ -459,7 +539,7 @@ int Bid(char * AID, char * UID, char * value, char * datetime, char * fulltime) 
 	file = fopen(fileName, "w");
 	if (file == NULL) {
 		if (DEBUG) printf("Error creating bid file\n");
-		return -1;
+		return -4;
 	}
 	fclose(file);
 
@@ -882,8 +962,11 @@ int GetAuctionsList(struct AUCTIONLIST ** auction_list) {
 				++n_auctions;
 			}
 		}
-		free(filelist[n_entries]);
 		memset(pathname, 0, sizeof(pathname));
+	}
+
+	for (i = 0; i < n_entries; i++) {
+		free(filelist[n_entries]);
 	}
 	free(filelist);
 	return n_auctions;
@@ -926,8 +1009,10 @@ int GetAuctionsListByUser(char * UID, struct AUCTIONLIST ** auction_list) {
 				++n_auctions;
 			}
 		}
-		free(filelist[n_entries]);
 		memset(pathname, 0, sizeof(pathname));
+	}
+	for (i = 0; i < n_entries; i++) {
+		free(filelist[n_entries]);
 	}
 	free(filelist);
 
@@ -972,8 +1057,10 @@ int GetAuctionsListByUserBidded(char * UID, struct AUCTIONLIST ** auction_list) 
 				++n_auctions;
 			}
 		}
-		free(filelist[n_entries]);
 		memset(pathname, 0, sizeof(pathname));
+	}
+	for (i = 0; i < n_entries; i++) {
+		free(filelist[n_entries]);
 	}
 	free(filelist);
 	return n_auctions;

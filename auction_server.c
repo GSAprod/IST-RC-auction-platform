@@ -795,8 +795,38 @@ void bid_handling(int socket_fd) {
         }
     }
     
+    /*
     // TODO Call BID function and react accordingly
-    printf("highest: %d\n", GetHighestBid(auctionID));
+    //! Movi esta logica para o BID para executar as cenas pela ordem do enunciado
+    int highestBid = GetHighestBid(auctionID);
+    printf("highest: %d\n", highestBid);
+
+    if (atoi(auctionValue) <= highestBid) {
+        memset(auctionValue, 0, sizeof auctionValue);
+        server_tcp_send(socket_fd, "RBD REF\n", 8);
+        return;
+    }
+    */
+
+    int status = Bid(auctionID, userID, auctionValue);
+    switch (status)
+    {
+    case 0:
+        server_tcp_send(socket_fd, "RBD ACC\n", 8);
+        break;
+    case -1:
+        server_tcp_send(socket_fd, "RBD NOK\n", 8);
+        break;
+    case -2:
+        server_tcp_send(socket_fd, "RBD REF\n", 8);
+        break;
+    case -3:
+        server_tcp_send(socket_fd, "RBD ILG\n", 8);
+        break;
+    default:
+        break;
+    }
+
 }
 
 /***
