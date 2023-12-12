@@ -557,8 +557,10 @@ void open_auction_handling(int socket_fd) {
 
     char * token = strtok(buffer, " ");
     strcpy(UID, token);
+    printf("UID: %s\n", UID);
     token = strtok(NULL, " ");
     strcpy(password, token);
+    printf("password: %s\n", password);
     token = strtok(NULL, " ");
     strcpy(name, token);
     token = strtok(NULL, " ");
@@ -570,7 +572,6 @@ void open_auction_handling(int socket_fd) {
     token = strtok(NULL, " ");
     strcpy(Fsize, token);
     
-    if (get_mode_verbose()) printf("token: %s\n", token + strlen(Fsize) + 1);
     strcpy(remaining, token + strlen(Fsize) + 1);
 
     if (get_mode_verbose()) {
@@ -712,19 +713,14 @@ void show_asset_handling(int socket_fd) {
         ptr++;
     }
 
-<<<<<<< HEAD
     if(!verify_format_AID(aid) || i == 32) {
-=======
-    if(!verify_format_AID(aid)) {
         if (get_mode_verbose()) printf("Invalid TCP request made to server.\n");
->>>>>>> main
         memset(aid, 0, sizeof aid);
         strcpy(aid, "ERR\n");
         server_tcp_send(socket_fd, aid, strlen(aid));
         return;
     }
 
-<<<<<<< HEAD
     if(ShowAsset(aid, socket_fd) == -1) {
         memset(aid, 0, sizeof aid);
         strcpy(aid, "RSA NOK\n");
@@ -853,15 +849,6 @@ void bid_handling(int socket_fd) {
         break;
     }
 
-=======
-    if (ShowAsset(aid, socket_fd) < 0) {
-        if (get_mode_verbose()) printf("Show asset: Auction %s does not exist.\n", aid);
-        memset(aid, 0, sizeof aid);
-        strcpy(aid, "ERR\n");
-        server_tcp_send(socket_fd, aid, strlen(aid));
-        return;
-    }
->>>>>>> main
 }
 
 /***

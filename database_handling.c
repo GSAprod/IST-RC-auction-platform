@@ -385,30 +385,25 @@ int CloseAuction(char * AID, char * UID) {
 	return 0;
 }
 
-<<<<<<< HEAD
 // TODO TEST THIS FUNCTION
 int GetHighestBid(char * AID) {
 	struct dirent **filelist;
 	char curPath[256];
 	int n_entries, name_len;
-=======
-int Bid(char * AID, char * UID, char * value, char * datetime, char * fulltime) {
-	if (get_mode_verbose()) printf("Bidding on auction %s\n", AID);
->>>>>>> main
 
 	// Check if the auction exists
 	sprintf(curPath, "ASDIR/AUCTIONS/%s/BIDS/", AID);
 	if (checkAssetFile(curPath)) {
-		if (DEBUG) printf("Auction %s exists\n", AID);
+		if (get_mode_verbose()) printf("Auction %s exists\n", AID);
 	} else {
-		if (DEBUG) printf("Auction %s does not exist\n", AID);
+		if (get_mode_verbose()) printf("Auction %s does not exist\n", AID);
 		return -1; //* -1 = auction does not exist
 	}
 
 	// Start scanning the bids directory until a file is found
 	n_entries = scandir(curPath, &filelist, 0, alphasort);
 	if (n_entries <= 0) {
-		if (DEBUG) printf("No files in asset folder of auction %s", AID);
+		if (get_mode_verbose()) printf("No files in asset folder of auction %s", AID);
 		return 0;
 	}
 
@@ -430,13 +425,12 @@ int Bid(char * AID, char * UID, char * value, char * datetime, char * fulltime) 
 	char * str_token = strtok(filelist[n_entries]->d_name, ".");
 
 	return atoi(str_token);
-
 }
 
 int Bid(char * AID, char * UID, char * value) {
 	char fileName[256];
 
-	if (DEBUG) printf("Bidding on auction %s\n", AID);
+	if (get_mode_verbose()) printf("Bidding on auction %s\n", AID);
 
 	// TODO TEST THIS
 
@@ -460,16 +454,12 @@ int Bid(char * AID, char * UID, char * value) {
 
 	FILE * file = fopen(fileName, "r");
 	if (file == NULL) {
-<<<<<<< HEAD
-		if (DEBUG) printf("Error opening file\n");
-=======
 		if (get_mode_verbose()) printf("Error creating bid file\n");
->>>>>>> main
-		return -1;
+		return -4;
 	}
 	if (fread(buffer, 1, sizeof(buffer), file) <= 0) {
-		if (DEBUG) printf("Error reading from start file\n");
-		return -1;
+		if (get_mode_verbose()) printf("Error reading from start file\n");
+		return -4;
 	}
 
 	fclose(file);
@@ -493,7 +483,7 @@ int Bid(char * AID, char * UID, char * value) {
 	time_t end_fulltime = atol(token) + atol(time_active);
 
 	if (end_fulltime <= now) {
-		if (DEBUG) printf("Auction %s ended\n", AID);
+		if (get_mode_verbose()) printf("Auction %s ended\n", AID);
 		return -1; //* -1 = auction already ended
 	}
 
@@ -505,12 +495,12 @@ int Bid(char * AID, char * UID, char * value) {
   printf("highest: %d\n", highestBid);
 
   if (atoi(value) <= highestBid) {
-  	if (DEBUG) printf("Bid value is lower than the highest bid\n");
+  	if (get_mode_verbose()) printf("Bid value is lower than the highest bid\n");
     return -2; //* -2 = bid value is lower than the highest bid
   }
 
 	if (!strcmp(UID_DB, UID)) {
-		if (DEBUG) printf("User %s is the auction host\n", UID);
+		if (get_mode_verbose()) printf("User %s is the auction host\n", UID);
 		return -3; //* -3 = user is the auction host
 	}
 
@@ -524,7 +514,7 @@ int Bid(char * AID, char * UID, char * value) {
 	sprintf(fileName, "ASDIR/AUCTIONS/%s/BIDS/%s.txt", AID, value);
 	file = fopen(fileName, "w");
 	if (file == NULL) {
-		if (DEBUG) printf("Error creating bid file\n");
+		if (get_mode_verbose()) printf("Error creating bid file\n");
 		return -1;
 	}
 	
@@ -544,13 +534,8 @@ int Bid(char * AID, char * UID, char * value) {
 	sprintf(fileName, "ASDIR/USERS/%s/BIDDED/%s.txt", UID, AID);
 	file = fopen(fileName, "w");
 	if (file == NULL) {
-<<<<<<< HEAD
-		if (DEBUG) printf("Error creating bid file\n");
-		return -4;
-=======
 		if (get_mode_verbose()) printf("Error creating bid file\n");
-		return -1;
->>>>>>> main
+		return -4;
 	}
 	fclose(file);
 
