@@ -19,7 +19,6 @@
 #define DEFAULT_PORT "58057"
 
 char port[8];
-int is_mode_verbose = 0;
 
 void set_program_parameters(int argc, char* argv[]) {
     int port_int;
@@ -34,7 +33,7 @@ void set_program_parameters(int argc, char* argv[]) {
             // If there are only two args, then the second one MUST be the verbose
             // mode
             if(!strcmp(argv[1], "-v")) {
-                is_mode_verbose = 1;
+                set_mode_verbose();
                 break;
             } else {
                 printf("Wrong arguments given.\n\t%s [-p ASport] [-v]\n", argv[0]);
@@ -57,11 +56,11 @@ void set_program_parameters(int argc, char* argv[]) {
             // ./AS -p ASport -v
             if(!strcmp(argv[1], "-v") && !strcmp(argv[2], "-p") &&
                atoi(argv[3]) > 0 && atoi(argv[3]) <= 65535) {
-                is_mode_verbose = 1;
+                set_mode_verbose();
                 strcpy(port, argv[3]);
             } else if (!strcmp(argv[3], "-v") && !strcmp(argv[1], "-p") &&
                atoi(argv[2]) > 0 && atoi(argv[2]) <= 65535) {
-                is_mode_verbose = 1;
+                set_mode_verbose();
                 strcpy(port, argv[2]);
             } else {
                 // We could just use the print from the default case here,
@@ -149,7 +148,7 @@ void login_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_l
     // Get the user ID and verify if it's a 6-digit number
     token = strtok(NULL, " ");
     if (!verify_format_id(token)) {
-        if (is_mode_verbose) printf("Invalid UDP request made to server.\n");
+        if (get_mode_verbose()) printf("Invalid UDP request made to server.\n");
         //? Should we check if the status is -1? If so, what should we do?
         server_udp_send("ERR\n", to_addr, to_addr_len);
         return;
@@ -159,7 +158,7 @@ void login_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_l
     // Get the user password and verify if it's an 8-digit number
     token = strtok(NULL, "\n");
     if (!verify_format_password(token)) {
-        if (is_mode_verbose) printf("Invalid UDP request made to server.\n");
+        if (get_mode_verbose()) printf("Invalid UDP request made to server.\n");
         //? Should we check if the status is -1? If so, what should we do?
         server_udp_send("ERR\n", to_addr, to_addr_len);
         return;
@@ -169,28 +168,28 @@ void login_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_l
     status = Login(userID, userPasswd);
     if (status == -2) {
         // In this case, there would be an error when a login attempt is made.
-        if (is_mode_verbose) 
+        if (get_mode_verbose()) 
             printf("Login: A error occurred when user %s was logging in.\n", userID);
         //? Same here
         server_udp_send("ERR\n", to_addr, to_addr_len);
 
     } else if (status == -1) {
         // In this case, the user and password don't match
-        if (is_mode_verbose) 
+        if (get_mode_verbose()) 
             printf("Login: Incorrect credentials given - user %s\n", userID);
         //? Same here
         server_udp_send("RLI NOK\n", to_addr, to_addr_len);
 
     } else if (status == 0) {
         // In this case, a new user is created in the database
-        if (is_mode_verbose) 
+        if (get_mode_verbose()) 
             printf("Login: New user with ID %s has been registered.\n", userID);
         //? Same here
         server_udp_send("RLI REG\n", to_addr, to_addr_len);
 
     } else if (status == 1) {
         // In this case, the login is successful
-        if (is_mode_verbose) 
+        if (get_mode_verbose()) 
             printf("Login: User %s has logged in\n", userID);
         //? Same here
         server_udp_send("RLI OK\n", to_addr, to_addr_len);
@@ -217,7 +216,7 @@ void logout_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_
     // Get the user ID and verify if it's a 6-digit number
     token = strtok(NULL, " ");
     if (!verify_format_id(token)) {
-        if (is_mode_verbose) printf("Invalid UDP request made to server.\n");
+        if (get_mode_verbose()) printf("Invalid UDP request made to server.\n");
         //? Should we check if the status is -1? If so, what should we do?
         server_udp_send("ERR\n", to_addr, to_addr_len);
         return;
@@ -227,7 +226,7 @@ void logout_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_
     // Get the user password and verify if it's an 8-digit number
     token = strtok(NULL, "\n");
     if (!verify_format_password(token)) {
-        if (is_mode_verbose) printf("Invalid UDP request made to server.\n");
+        if (get_mode_verbose()) printf("Invalid UDP request made to server.\n");
         //? Should we check if the status is -1? If so, what should we do?
         server_udp_send("ERR\n", to_addr, to_addr_len);
         return;
@@ -238,19 +237,19 @@ void logout_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_
     status = CheckUserLogged(userID, userPasswd);
     switch (status) {
         case -2:
-            if (is_mode_verbose) 
+            if (get_mode_verbose()) 
                 printf("Logout: Invalid password or password error for user %s\n", userID);
             //? Same here
             server_udp_send("ERR\n", to_addr, to_addr_len);
             break;
         case -1:
-            if (is_mode_verbose) 
+            if (get_mode_verbose()) 
                 printf("Logout: User %s not registered in database\n", userID);
             //? Same here
             server_udp_send("RLO UNR\n", to_addr, to_addr_len);
             break;
         case 0:
-            if (is_mode_verbose) 
+            if (get_mode_verbose()) 
                 printf("Logout: User %s is not logged in\n", userID);
             //? Same here
             server_udp_send("RLO NOK\n", to_addr, to_addr_len);
@@ -258,13 +257,13 @@ void logout_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_
         case 1:
             status = Logout(userID);
             if (status != 1) {
-                if (is_mode_verbose) 
+                if (get_mode_verbose()) 
                     printf("Logout: User %s is not logged in\n", userID);
                 //? Same here
                 server_udp_send("RLO NOK\n", to_addr, to_addr_len);
                 break;
             } else {
-                if (is_mode_verbose) 
+                if (get_mode_verbose()) 
                     printf("Logout: User %s has logged out\n", userID);
                 //? Same here
                 server_udp_send("RLO OK\n", to_addr, to_addr_len);
@@ -293,7 +292,7 @@ void unregister_handling(char* message, struct sockaddr* to_addr, socklen_t to_a
     // Get the user ID and verify if it's a 6-digit number
     token = strtok(NULL, " ");
     if (!verify_format_id(token)) {
-        if (is_mode_verbose) printf("Invalid UDP request made to server.\n");
+        if (get_mode_verbose()) printf("Invalid UDP request made to server.\n");
         //? Should we check if the status is -1? If so, what should we do?
         server_udp_send("ERR\n", to_addr, to_addr_len);
         return;
@@ -303,7 +302,7 @@ void unregister_handling(char* message, struct sockaddr* to_addr, socklen_t to_a
     // Get the user password and verify if it's an 8-digit number
     token = strtok(NULL, "\n");
     if (!verify_format_password(token)) {
-        if (is_mode_verbose) printf("Invalid UDP request made to server.\n");
+        if (get_mode_verbose()) printf("Invalid UDP request made to server.\n");
         //? Should we check if the status is -1? If so, what should we do?
         server_udp_send("ERR\n", to_addr, to_addr_len);
         return;
@@ -314,19 +313,19 @@ void unregister_handling(char* message, struct sockaddr* to_addr, socklen_t to_a
     status = CheckUserLogged(userID, userPasswd);
     switch (status) {
         case -2:
-            if (is_mode_verbose) 
+            if (get_mode_verbose()) 
                 printf("Unregister: Invalid password or password error for user %s\n", userID);
             //? Same here
             server_udp_send("ERR\n", to_addr, to_addr_len);
             break;
         case -1:
-            if (is_mode_verbose) 
+            if (get_mode_verbose()) 
                 printf("Unregister: User %s not registered in database\n", userID);
             //? Same here
             server_udp_send("RUR UNR\n", to_addr, to_addr_len);
             break;
         case 0:
-            if (is_mode_verbose) 
+            if (get_mode_verbose()) 
                 printf("Unregister: User %s is not logged in\n", userID);
             //? Same here
             server_udp_send("RUR NOK\n", to_addr, to_addr_len);
@@ -334,13 +333,13 @@ void unregister_handling(char* message, struct sockaddr* to_addr, socklen_t to_a
         case 1:
             status = Unregister(userID);
             if (status != 0) {
-                if (is_mode_verbose) 
+                if (get_mode_verbose()) 
                     printf("Unregister: User %s is not logged in\n", userID);
                 //? Same here
                 server_udp_send("RUR NOK\n", to_addr, to_addr_len);
                 break;
             } else {
-                if (is_mode_verbose) 
+                if (get_mode_verbose()) 
                     printf("Unregister: Unregistered user %s\n", userID);
                 //? Same here
                 server_udp_send("RUR OK\n", to_addr, to_addr_len);
@@ -365,13 +364,12 @@ void list_myauctions_handling(char* message, struct sockaddr* to_addr, socklen_t
 
     strtok(message, " ");    // This only gets the "LMA " string
 
-    printf("message: %s\n", message);
+    if (get_mode_verbose()) printf("message: %s\n", message);
 
     // Get the user ID and verify if it's a 6-digit number
     token = strtok(NULL, "\n");
     if (!verify_format_id(token)) {
-        printf("token: %s\n", token);
-        if (is_mode_verbose) printf("Invalid UDP request made to server.\n");
+        if (get_mode_verbose()) printf("Invalid UDP request made to server.\n");
         //? Should we check if the status is -1? If so, what should we do?
         server_udp_send("ERR\n", to_addr, to_addr_len);
         return;
@@ -381,25 +379,24 @@ void list_myauctions_handling(char* message, struct sockaddr* to_addr, socklen_t
     struct AUCTIONLIST * auction_list = NULL;
     num_auctions = GetAuctionsListByUser(userID, &auction_list);
     if (num_auctions == -1) {
-        if (is_mode_verbose) printf("List my auctions: User %s is not logged in.\n", userID);
+        if (get_mode_verbose()) printf("List my auctions: User %s is not logged in.\n", userID);
         server_udp_send("RMA NLG\n", to_addr, to_addr_len);
         return;
     }
     if (num_auctions == 0) {
-        if (is_mode_verbose) printf("List my auctions: User %s has no ongoing auctions.\n", userID);
+        if (get_mode_verbose()) printf("List my auctions: User %s has no ongoing auctions.\n", userID);
         //? Same here
         server_udp_send("RMA NOK\n", to_addr, to_addr_len);
         free(auction_list);
         return;
     }
 
-    printf("num_auctions: %d\n", num_auctions);
+    if (get_mode_verbose()) printf("num_auctions: %d\n", num_auctions);
 
     strcpy(response, "RMA OK");
     ptr = response + 6;
     char aux[10];
     for(int i = 0; i < num_auctions; i++) {
-        printf("AID: %s\n", auction_list[i].AID);
         sprintf(aux, " %s %d", auction_list[i].AID, auction_list[i].active);
         strcpy(ptr, aux);
         ptr += strlen(aux);
@@ -424,7 +421,7 @@ void list_mybids_handling(char* message, struct sockaddr* to_addr, socklen_t to_
     // Get the user ID and verify if it's a 6-digit number
     token = strtok(NULL, "\n");
     if (!verify_format_id(token)) {
-        if (is_mode_verbose) printf("Invalid UDP request made to server.\n");
+        if (get_mode_verbose()) printf("Invalid UDP request made to server.\n");
         //? Should we check if the status is -1? If so, what should we do?
         server_udp_send("ERR\n", to_addr, to_addr_len);
         return;
@@ -434,12 +431,12 @@ void list_mybids_handling(char* message, struct sockaddr* to_addr, socklen_t to_
 
     num_auctions = GetAuctionsListByUserBidded(userID, &bid_list);
     if (num_auctions == -1) {
-        if (is_mode_verbose) printf("List my bids: User %s is not logged in.\n", userID);
+        if (get_mode_verbose()) printf("List my bids: User %s is not logged in.\n", userID);
         server_udp_send("RMB NLG\n", to_addr, to_addr_len);
         return;
     }
     if (num_auctions == 0) {
-        if (is_mode_verbose) printf("List my bids: User %s has no BIDS.\n", userID);
+        if (get_mode_verbose()) printf("List my bids: User %s has no BIDS.\n", userID);
         //? Same here
         server_udp_send("RMB NOK\n", to_addr, to_addr_len);
         free(bid_list);
@@ -470,14 +467,14 @@ void list_auctions_handling(char * message, struct sockaddr* to_addr, socklen_t 
     strtok(message, " ");    // This only gets the "UNR " string
 
     num_auctions = GetAuctionsList(&auction_list);
-    if (is_mode_verbose) printf("num_auctions: %d\n", num_auctions);
+    if (get_mode_verbose()) printf("num_auctions: %d\n", num_auctions);
     if (num_auctions == -1) {
-        if (is_mode_verbose) printf("List auctions: User is not logged in.\n");
+        if (get_mode_verbose()) printf("List auctions: User is not logged in.\n");
         server_udp_send("RST NLG\n", to_addr, to_addr_len);
         return;
     }
     if (num_auctions == 0) {
-        if (is_mode_verbose) printf("List auctions: There are no ongoing auctions.\n");
+        if (get_mode_verbose()) printf("List auctions: There are no ongoing auctions.\n");
         //? Same here
         server_udp_send("RST NOK\n", to_addr, to_addr_len);
         free(auction_list);
@@ -499,6 +496,35 @@ void list_auctions_handling(char * message, struct sockaddr* to_addr, socklen_t 
     server_udp_send(response, to_addr, to_addr_len);
 }  
 
+void show_record_handling(char * message, struct sockaddr* to_addr, socklen_t to_addr_len) {
+    char response[8192];
+    char * res_ptr = response;
+
+    strtok(message, " ");    // This only gets the "SRC " string
+
+    // Get the user ID and verify if it's a 6-digit number
+    char AID[4];
+    strcpy(AID, strtok(NULL, "\n"));
+    if (!verify_format_AID(AID)) {
+        if (get_mode_verbose()) printf("Invalid UDP request made to server.\n");
+        //? Should we check if the status is -1? If so, what should we do?
+        server_udp_send("ERR\n", to_addr, to_addr_len);
+        return;
+    }
+
+    strcpy(res_ptr, "RRC OK ");
+    res_ptr += 7;
+
+    if (GetAuctionInfo(AID, res_ptr) < 0) {
+        if (get_mode_verbose()) printf("Show record: Auction %s does not exist.\n", AID);
+        server_udp_send("RSR NOK\n", to_addr, to_addr_len);
+        return;
+    }
+
+    if (get_mode_verbose()) printf("response: %s\n", response);
+    server_udp_send(response, to_addr, to_addr_len);
+}
+
 void open_auction_handling(int socket_fd) {
     char buffer[256];
     char UID[7], password[9], name[32], start_value[16], timea_active[12], Fname[32], Fsize[64];
@@ -508,7 +534,7 @@ void open_auction_handling(int socket_fd) {
     memset(buffer, 0, sizeof buffer);
 
     if (server_tcp_receive(socket_fd, buffer, sizeof(buffer)) == -1) {
-        if (is_mode_verbose)
+        if (get_mode_verbose())
             printf("Failed to receive TCP message. Closing connection.\n");
         server_tcp_close(socket_fd);
         return;
@@ -526,34 +552,28 @@ void open_auction_handling(int socket_fd) {
     memset(remaining, 0, sizeof buffer);
 
 
-    if (is_mode_verbose)
+    if (get_mode_verbose())
         printf("Open auction: Received message: %s\n", buffer);
 
     char * token = strtok(buffer, " ");
     strcpy(UID, token);
     token = strtok(NULL, " ");
-    printf("token: %s\n", token);
     strcpy(password, token);
     token = strtok(NULL, " ");
-    printf("token: %s\n", token);
     strcpy(name, token);
     token = strtok(NULL, " ");
-    printf("token: %s\n", token);
     strcpy(start_value, token);
     token = strtok(NULL, " ");
-    printf("token: %s\n", token);
     strcpy(timea_active, token);
     token = strtok(NULL, " ");
-    printf("token: %s\n", token);
     strcpy(Fname, token);
     token = strtok(NULL, " ");
-    printf("token: %s\n", token);
     strcpy(Fsize, token);
     
-    printf("token: %s\n", token + strlen(Fsize) + 1);
+    if (get_mode_verbose()) printf("token: %s\n", token + strlen(Fsize) + 1);
     strcpy(remaining, token + strlen(Fsize) + 1);
 
-    if (is_mode_verbose) {
+    if (get_mode_verbose()) {
         printf("Open auction: User %s is trying to open an auction.\n", UID);
         printf("Open auction: Name: %s\n", name);
         printf("Open auction: Start value: %s\n", start_value);
@@ -610,7 +630,7 @@ void close_auction_handling(int socket_fd) {
 
     //reads byte by byte until it finds a \n
     while (server_tcp_receive(socket_fd, ptr, 1) > 0) {
-        printf("ptr: %c\n", *ptr);
+        if (get_mode_verbose()) printf("ptr: %c\n", *ptr);
         if (*ptr == '\n') break;
         ptr++;
     }
@@ -619,14 +639,14 @@ void close_auction_handling(int socket_fd) {
     char UID[7], AID[4], password[9];
     sscanf(buffer, "%s %s %s\n", UID, password, AID);
 
-    if (is_mode_verbose) {
+    if (get_mode_verbose()) {
         printf("Close auction: User %s is trying to close an auction.\n", UID);
         printf("Close auction: Auction ID: %s\n", AID);
         printf("Close auction: Password: %s\n", password);
     }
 
     if (!verify_format_id(UID) || !verify_format_password(password) || !verify_format_AID(AID)) {
-        if (is_mode_verbose) {
+        if (get_mode_verbose()) {
             printf("Invalid TCP request made to server.\n");
             printf("ERRORS IN:\nver_UID: %d\nver_aid: %d\nver_pass: %d\n", verify_format_id(UID), verify_format_id(AID), verify_format_password(password));
         }
@@ -637,7 +657,7 @@ void close_auction_handling(int socket_fd) {
     // Check if the user is logged in
     int status = CheckUserLogged(UID, password);
     if (status <= 0) {
-        if (is_mode_verbose)
+        if (get_mode_verbose())
             printf("Close auction: User %s is not logged in.\n", UID);
         server_tcp_send(socket_fd, "RCL NLG\n", 8);
         return;
@@ -646,22 +666,22 @@ void close_auction_handling(int socket_fd) {
     status = CloseAuction(AID, UID);
     switch (status) {
         case 0:
-            if (is_mode_verbose)
+            if (get_mode_verbose())
                 printf("Close auction: Auction %s has been closed.\n", AID);
             server_tcp_send(socket_fd, "RCL OK\n", 7);
             return;
         case -1:
-            if (is_mode_verbose)
+            if (get_mode_verbose())
                 printf("Close auction: Auction does not exist - %s.\n", AID);
             server_tcp_send(socket_fd, "RCL EAU\n", 8);
             return;
         case -2:
-            if (is_mode_verbose)
+            if (get_mode_verbose())
                 printf("Close auction: User %s is not the auction owner.\n", UID);
             server_tcp_send(socket_fd, "RCL EOW\n", 8);
             return;
         case -3:
-            if (is_mode_verbose)
+            if (get_mode_verbose())
                 printf("Close auction: Auction %s has already ended.\n", AID);
             server_tcp_send(socket_fd, "RCL END\n", 8);
             return;
@@ -692,13 +712,19 @@ void show_asset_handling(int socket_fd) {
         ptr++;
     }
 
+<<<<<<< HEAD
     if(!verify_format_AID(aid) || i == 32) {
+=======
+    if(!verify_format_AID(aid)) {
+        if (get_mode_verbose()) printf("Invalid TCP request made to server.\n");
+>>>>>>> main
         memset(aid, 0, sizeof aid);
         strcpy(aid, "ERR\n");
         server_tcp_send(socket_fd, aid, strlen(aid));
         return;
     }
 
+<<<<<<< HEAD
     if(ShowAsset(aid, socket_fd) == -1) {
         memset(aid, 0, sizeof aid);
         strcpy(aid, "RSA NOK\n");
@@ -827,6 +853,15 @@ void bid_handling(int socket_fd) {
         break;
     }
 
+=======
+    if (ShowAsset(aid, socket_fd) < 0) {
+        if (get_mode_verbose()) printf("Show asset: Auction %s does not exist.\n", aid);
+        memset(aid, 0, sizeof aid);
+        strcpy(aid, "ERR\n");
+        server_tcp_send(socket_fd, aid, strlen(aid));
+        return;
+    }
+>>>>>>> main
 }
 
 /***
@@ -845,7 +880,7 @@ int handle_udp_request() {
     memset(buffer, 0, sizeof buffer);
     status = server_udp_receive(buffer, 256, &sender_addr, &sender_addr_len);
     if (status == -1) {
-        if (is_mode_verbose) printf("Failed to receive request.\n");
+        if (get_mode_verbose()) printf("Failed to receive request.\n");
         return -1;   // Go to the next mesage
     }
 
@@ -871,9 +906,9 @@ int handle_udp_request() {
     } else if (!strcmp(message_type, "LST\n")) {
         list_auctions_handling(buffer, &sender_addr, sender_addr_len);
     } else if (!strcmp(message_type, "SRC ")) {
-        // TODO Auction record handling routine
+        show_record_handling(buffer, &sender_addr, sender_addr_len);
     } else {
-        if(is_mode_verbose)
+        if(get_mode_verbose())
             printf("Invalid UDP request made to server.\n");
         
         // The message is invalid in this case.
@@ -893,7 +928,7 @@ int handle_tcp_request() {
     // Accept the new connection to the new socket
     socket_fd = server_tcp_accept();
     if (socket_fd == -1) {
-        if (is_mode_verbose)
+        if (get_mode_verbose())
             printf("Failed to accept TCP connection.\n");
         return -1;
     }
@@ -905,7 +940,7 @@ int handle_tcp_request() {
             sizeof timeout) < 0 ||
             setsockopt(socket_fd, SOL_SOCKET, SO_SNDTIMEO, &timeout,
             sizeof timeout) < 0) {
-        if (is_mode_verbose)
+        if (get_mode_verbose())
             printf("Failed to establish TCP socket timeout.\n");
         server_tcp_close(socket_fd);
         return -1;
@@ -916,7 +951,7 @@ int handle_tcp_request() {
     memset(buffer, 0, sizeof buffer);
     status = server_tcp_receive(socket_fd, buffer, 4);
     if (status == -1) {
-        if (is_mode_verbose)
+        if (get_mode_verbose())
             printf("Failed to receive TCP message. Closing connection.\n");
         server_tcp_close(socket_fd);
         return -1;
@@ -939,7 +974,7 @@ int handle_tcp_request() {
     } else {
         // Send an error response using TCP
         status = server_tcp_send(socket_fd, "ERR\n", 4);
-        if (status == -1 && is_mode_verbose) {
+        if (status == -1 && get_mode_verbose()) {
             printf("Failed to send TCP response. Closing connection.\n");
             server_tcp_close(socket_fd);
             return -1;

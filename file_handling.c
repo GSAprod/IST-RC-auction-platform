@@ -12,7 +12,7 @@ int checkAssetFile(char * filename) {
 		return -1;
 	}
 
-	printf("File size: %ld\n", filestat.st_size);
+	if (get_mode_verbose()) printf("File size: %ld\n", filestat.st_size);
 
 	return filestat.st_size;
 }
@@ -23,7 +23,7 @@ int sendFile(char * filename, long fsize) {
 		return -1;
 	}
 	while (fsize > 0) {
-		printf("fsize: %ld\n", fsize);
+		if (get_mode_verbose()) printf("fsize: %ld\n", fsize);
 		char buffer[512];
 		int read_size = read(fd, buffer, fsize > 512 ? 512 : fsize);
 		if (read_size == -1) {
@@ -31,7 +31,7 @@ int sendFile(char * filename, long fsize) {
 		}
 		fsize -= read_size;
 		tcp_send(buffer, read_size);
-		printf("read_size: %d\n", read_size);
+		if (get_mode_verbose()) printf("read_size: %d\n", read_size);
 	}
 	
 	close(fd);
@@ -119,15 +119,17 @@ int ServerReceiveFile(char * filename, long fsize, int socket_fd, char * beginni
 		fsize -= written_size;
 	}
 
-	printf("beginning_bytes_size: %d\n", beginning_bytes_size);
-	printf("fsize: %ld\n", fsize);
+	if (get_mode_verbose()) {
+		printf("beginning_bytes_size: %d\n", beginning_bytes_size);
+		printf("fsize: %ld\n", fsize);
+	}
 
 	while (fsize > 0) {
-		printf("fsize: %ld\n", fsize);
+		if (get_mode_verbose()) printf("fsize: %ld\n", fsize);
 		char buffer[512];
 		memset(buffer, 0, sizeof(buffer));
 		int read_size = server_tcp_receive(socket_fd,buffer, fsize > 512 ? 512 : fsize);
-		printf("read_size: %d\n", read_size);
+		if (get_mode_verbose()) printf("read_size: %d\n", read_size);
 		if (read_size == -1) {
 			return -1;
 		}
