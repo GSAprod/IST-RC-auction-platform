@@ -439,8 +439,6 @@ int Bid(char * AID, char * UID, char * value) {
 
 	if (get_mode_verbose()) printf("UID: %s\nValue: %s\n", UID, value);
 
-	// TODO TEST THIS
-
 	time_t now;
 	time(&now);
 
@@ -472,9 +470,11 @@ int Bid(char * AID, char * UID, char * value) {
 	fclose(file);
 
 	// READ START auction FILE
-	char UID_DB[6];
+	char UID_DB[7];
+	memset(UID_DB, 0, sizeof(UID_DB));
 
 	char * token = strtok(buffer, " "); //UID
+	strcpy(UID_DB, token);
 
 	token = strtok(NULL, " "); //Name
 	token = strtok(NULL, " "); //Asset filename
@@ -490,11 +490,9 @@ int Bid(char * AID, char * UID, char * value) {
 	token = strtok(NULL, " "); //Start hours
 
 	token = strtok(NULL, " "); //Start fulltime (time_t)
-	if (get_mode_verbose()) printf("Start time: %s\n", token);
-	if (get_mode_verbose()) printf("Time active: %s\n", time_active);
-	time_t end_fulltime = atol(token) + atol(time_active);
 
-	if (end_fulltime <= now) {
+	int checkIfEnded = checkIfAuctionEnded(AID);
+	if (checkIfEnded == 1) {
 		if (get_mode_verbose()) printf("Auction %s ended\n", AID);
 		return -1; //* -1 = auction already ended
 	}
@@ -510,7 +508,9 @@ int Bid(char * AID, char * UID, char * value) {
 		}
 	}
 
-  if (atol(value) <= highestBid) {
+	int numeric_value = atoi(value);
+
+  if (numeric_value <= highestBid) {
   	if (get_mode_verbose()) printf("Bid value is lower than the highest bid\n");
     return -2; //* -2 = bid value is lower than the highest bid
   }
@@ -523,11 +523,11 @@ int Bid(char * AID, char * UID, char * value) {
 	char * bid_info = malloc(strlen(UID) + strlen(value) + strlen(datetime) + strlen(fulltime) + 4);
 
 	//Write to file info about the bid
-	sprintf(bid_info, "%s %s %s %s", UID, value, datetime, fulltime);
+	sprintf(bid_info, "%s %06d %s %s", UID, numeric_value, datetime, fulltime);
 
 	//Create bid file
 	memset(fileName, 0, sizeof(fileName));
-	sprintf(fileName, "ASDIR/AUCTIONS/%s/BIDS/%s.txt", AID, value);
+	sprintf(fileName, "ASDIR/AUCTIONS/%s/BIDS/%06d.txt", AID, numeric_value);
 	file = fopen(fileName, "w");
 	if (file == NULL) {
 		if (get_mode_verbose()) printf("Error creating bid file\n");
@@ -715,6 +715,7 @@ int GetBidList(char * AID, struct BIDLIST ** bidlist) {
 	char pathname[564]; //! Change this
 
 	sprintf(dirname, "ASDIR/AUCTIONS/%s/BIDS", AID);
+	if (get_mode_verbose()) printf("Directory name: %s\n", dirname);
 
 	n_entries = scandir(dirname, &filelist, 0, alphasort);
 
@@ -807,8 +808,10 @@ int checkIfAuctionEnded(char * AID) {
 		fclose(file);
 
 		time_t now;
-		time_t start_date = atoi(start_date_str);
+		time_t start_date = atol(start_date_str);
 		time_t end_date = start_date + atoi(time_active);
+
+		
 
 		time(&now);
 
@@ -893,6 +896,7 @@ int GetAuctionInfo(char * AID, char * message_ptr) {
 	char start_value[16];
 	char time_active[16];
 	char start_datetime[20];
+	char fulltime[16];
 
 	char * token = strtok(auction_info, " ");
 	strcpy(UID, token);
@@ -909,12 +913,16 @@ int GetAuctionInfo(char * AID, char * message_ptr) {
 	token = strtok(NULL, " ");
 	strcpy(time_active, token);
 
-	token = strtok(NULL, " ");
-	strcpy(start_datetime, token);
+	token = token + strlen(token) + 1;
+	strncpy(start_datetime, token, 19);
+	start_datetime[19] = '\0';
+
+	token = token + strlen(token) + 1;
+	strcpy(fulltime, token);
 
 	if (get_mode_verbose()) printf("UID: %s\nName: %s\nAsset filename: %s\nStart value: %s\nTime active: %s\nStart datetime: %s\n", UID, name, asset_fname, start_value, time_active, start_datetime);
 
-	sprintf(message_ptr, "%s %s %s %s %s %s", UID, name, asset_fname, start_value, time_active, start_datetime);
+	sprintf(message_ptr, "%s %s %s %s %s %s %s", UID, name, asset_fname, start_value, time_active, start_datetime, fulltime);
 
 	message_ptr = message_ptr + strlen(message_ptr);
 
@@ -1054,7 +1062,7 @@ int GetAuctionsListByUser(char * UID, struct AUCTIONLIST ** auction_list) {
 				sscanf(filelist[i]->d_name, "%3s.txt", AID);
 				strncpy((*auction_list)[n_auctions].AID, AID, 3);
 				(*auction_list)[n_auctions].AID[3] = '\0';
-				(*auction_list)[n_auctions].active = checkIfAuctionEnded((*auction_list)[n_auctions].AID) ? 0 : 1;
+				(*auction_list)[n_auctions].active = checkIfAuctionEnded(AID) ? 0 : 1;
 				++n_auctions;
 			}
 		}
