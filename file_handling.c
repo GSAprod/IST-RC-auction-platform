@@ -39,25 +39,16 @@ int sendFile(char * filename, long fsize) {
 	return 0;
 }
 
-int receiveFile(char * filename, long fsize, char * beginning_bytes, int beginning_bytes_size) {
+int receiveFile(char * filename, long fsize) {
 	int fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0666);
 	if (fd == -1) {
 		return -1;
 	}
 
-	while (beginning_bytes_size > 0) {
-		int written_size = write(fd,beginning_bytes, beginning_bytes_size);
-		if (written_size == -1) {
-			return -1;
-		}
-		beginning_bytes_size -= written_size;
-		fsize -= written_size;
-	}
-
 	while (fsize > 0) {
 		char buffer[512];
+		memset(buffer, 0, sizeof(buffer));
 		int read_size = tcp_receive(buffer, fsize > 512 ? 512 : fsize);
-		printf("read_size: %d\n", read_size);
 		if (read_size == -1) {
 			return -1;
 		}
