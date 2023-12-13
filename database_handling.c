@@ -712,7 +712,7 @@ int GetBidList(char * AID, struct BIDLIST ** bidlist) {
 	struct dirent **filelist;
 	int n_entries, n_bids, len;
 	char dirname[32];
-	char pathname[564]; //! Change this shit
+	char pathname[564]; //! Change this
 
 	sprintf(dirname, "ASDIR/AUCTIONS/%s/BIDS", AID);
 

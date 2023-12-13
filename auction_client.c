@@ -439,9 +439,7 @@ void openAuction(int arg_count, char arg_values[][128]) {
         printf("Open auction: Invalid response from server.\n");
     }
 
-    TCP_free();
     return;
-
 }
 
 void closeAuction(int arg_count, char arg_values[][128]) {

@@ -614,7 +614,7 @@ void open_auction_handling(int socket_fd) {
     }
 
     // Check if the message is valid
-    //TODO: Verify all this shit
+    // TODO Verify
     if (CheckUserLogged(UID, password) != 1) {
         sprintf(res, "ROA NLG\n");
         server_tcp_send(socket_fd, res, strlen(res));
