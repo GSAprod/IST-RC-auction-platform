@@ -199,7 +199,7 @@ int Unregister(char * UID) {
 	return 0;
 }
 
-int CreateAuction(char * UID, char*name, char * asset_fname, char * start_value, char * time_active, char * start_datetime, time_t start_fulltime, char * file_size, int socket_fd, char * remaining_message, size_t remaining_size) {
+int CreateAuction(char * UID, char*name, char * asset_fname, char * start_value, char * time_active, char * start_datetime, time_t start_fulltime, char * file_size, int socket_fd) {
 	if (get_mode_verbose()) printf("Creating auction\n");
 
 	char fileName[256];
@@ -237,7 +237,7 @@ int CreateAuction(char * UID, char*name, char * asset_fname, char * start_value,
 		return -1;
 	}
 
-	char * start_info = malloc(strlen(UID) + strlen(name) + strlen(asset_fname) + strlen(start_value) + strlen(time_active) + strlen(start_datetime) + sizeof(start_fulltime) + 7);
+	char start_info[128];
 
 	//Write to file info about the auction
 	sprintf(start_info, "%s %s %s %s %s %s %ld", UID, name, asset_fname, start_value, time_active, start_datetime, start_fulltime);
@@ -246,11 +246,9 @@ int CreateAuction(char * UID, char*name, char * asset_fname, char * start_value,
 	if (written != strlen(start_info)) {
 		if (get_mode_verbose()) printf("Error writing to Start_AID file\n");
 		fclose(file);
-		free(start_info);
 		return -1;
 	}
 
-	free(start_info);
 	fclose(file);
 
 	memset(fileName, 0, sizeof(fileName));
@@ -266,7 +264,7 @@ int CreateAuction(char * UID, char*name, char * asset_fname, char * start_value,
 	sprintf(fileName, "ASDIR/AUCTIONS/%s/ASSET/%s", AID, asset_fname);
 	long fsize = atol(file_size);
 	if (get_mode_verbose()) printf("File size: %ld\n", fsize);
-	ServerReceiveFile(fileName, fsize, socket_fd, remaining_message, remaining_size);
+	ServerReceiveFile(fileName, fsize, socket_fd);
 
 	memset(fileName, 0, sizeof(fileName));
 

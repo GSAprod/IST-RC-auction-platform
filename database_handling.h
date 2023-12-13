@@ -88,7 +88,7 @@ int Unregister(char * UID);
  * 
  * @returns 0 if no error occurred, -1 if an error occurred
 */
-int CreateAuction(char * UID, char*name, char * asset_fname, char * start_value, char * time_active, char * start_datetime, time_t start_fulltime, char * file_size, int socket_fd, char * remaining_message, size_t remaining_size);
+int CreateAuction(char * UID, char*name, char * asset_fname, char * start_value, char * time_active, char * start_datetime, time_t start_fulltime, char * file_size, int socket_fd);
 
 /***
  * Returns the highest value of a bid

@@ -526,20 +526,11 @@ void show_record_handling(char * message, struct sockaddr* to_addr, socklen_t to
 }
 
 void open_auction_handling(int socket_fd) {
-    char buffer[256];
+    char buffer[2];
     char UID[7], password[9], name[32], start_value[16], timea_active[12], Fname[32], Fsize[64];
     char res[24];
 
-    // Receive some bytes of the message
     memset(buffer, 0, sizeof buffer);
-
-    if (server_tcp_receive(socket_fd, buffer, sizeof(buffer)) == -1) {
-        if (get_mode_verbose())
-            printf("Failed to receive TCP message. Closing connection.\n");
-        server_tcp_close(socket_fd);
-        return;
-    }
-
     memset(UID, 0, sizeof UID);
     memset(password, 0, sizeof password);
     memset(name, 0, sizeof name);
@@ -548,13 +539,13 @@ void open_auction_handling(int socket_fd) {
     memset(Fname, 0, sizeof Fname);
     memset(Fsize, 0, sizeof Fsize);
 
-    char * remaining = malloc(sizeof buffer);
-    memset(remaining, 0, sizeof buffer);
-
-
-    if (get_mode_verbose())
-        printf("Open auction: Received message: %s\n", buffer);
-
+    /*
+    if (server_tcp_receive(socket_fd, buffer, sizeof(buffer)) == -1) {
+        if (get_mode_verbose())
+            printf("Failed to receive TCP message. Closing connection.\n");
+        server_tcp_close(socket_fd);
+        return;
+    }
     char * token = strtok(buffer, " ");
     strcpy(UID, token);
     token = strtok(NULL, " ");
@@ -569,8 +560,48 @@ void open_auction_handling(int socket_fd) {
     strcpy(Fname, token);
     token = strtok(NULL, " ");
     strcpy(Fsize, token);
-    
-    strcpy(remaining, token + strlen(Fsize) + 1);
+    */
+
+   // Variables for parsing
+    char currentField[64];
+    int currentFieldIndex = 0;
+
+    // Receive bytes from the message
+    memset(currentField, 0, sizeof(currentField));
+
+    int read_size = 0;
+    int leave = 0;
+
+    memset(buffer, 0, sizeof(buffer));
+
+    while (!leave && (read_size = server_tcp_receive(socket_fd, buffer, 1)) > 0) {
+        if (buffer[0] == ' ') {
+            // Space encountered, process the current field
+            switch (currentFieldIndex) {
+                case 0: strcpy(UID, currentField); break;
+                case 1: strcpy(password, currentField); break;
+                case 2: strcpy(name, currentField); break;
+                case 3: strcpy(start_value, currentField); break;
+                case 4: strcpy(timea_active, currentField); break;
+                case 5: strcpy(Fname, currentField); break;
+                case 6: strcpy(Fsize, currentField); leave = 1; break;
+            }
+            
+            // Move to the next field
+            memset(currentField, 0, sizeof(currentField));
+            currentFieldIndex++;
+        } else {
+            // Append the current character to the current field
+            strncat(currentField, buffer, 1);
+        }
+    }
+
+    if (read_size == -1) {
+        if (get_mode_verbose())
+            printf("Failed to receive TCP message. Closing connection.\n");
+        server_tcp_close(socket_fd);
+        return;
+    }
 
     if (get_mode_verbose()) {
         printf("Open auction: User %s is trying to open an auction.\n", UID);
@@ -587,25 +618,21 @@ void open_auction_handling(int socket_fd) {
     if (CheckUserLogged(UID, password) != 1) {
         sprintf(res, "ROA NLG\n");
         server_tcp_send(socket_fd, res, strlen(res));
-        free(remaining);
         return;
     }
 
     char start_time[20];
     time_t now;
 
-    size_t remaining_size = sizeof(buffer) - ( strlen(UID) + strlen(password) + strlen(name) + strlen(start_value) + strlen(timea_active) + strlen(Fname) + strlen(Fsize) + 7);
-
     time(&now);
 
     timeToString(now, start_time);
 
-    int AID = CreateAuction(UID, name, Fname, start_value, timea_active, start_time, now, Fsize, socket_fd, remaining, remaining_size);
+    int AID = CreateAuction(UID, name, Fname, start_value, timea_active, start_time, now, Fsize, socket_fd);
 
     if (AID <= 0) {
         sprintf(res, "ROA NOK\n");
         server_tcp_send(socket_fd, res, strlen(res));
-        free(remaining);
         return;
     }
 
@@ -613,8 +640,6 @@ void open_auction_handling(int socket_fd) {
     server_tcp_send(socket_fd, res, strlen(res));
 
     server_tcp_close(socket_fd);
-
-    free(remaining);
 
     return;
 
