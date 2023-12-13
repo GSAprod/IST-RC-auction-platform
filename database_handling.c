@@ -1118,12 +1118,12 @@ int GetAuctionsListByUserBidded(char * UID, struct AUCTIONLIST ** auction_list) 
 				(*auction_list)[n_auctions].active = checkIfAuctionEnded((*auction_list)[n_auctions].AID) ? 0 : 1;
 				++n_auctions;
 			}
+			free(filelist[n_entries]);
 		}
 		memset(pathname, 0, sizeof(pathname));
 	}
-	for (i = 0; i < n_entries; i++) {
-		free(filelist[n_entries]);
-	}
+	
+	
 	free(filelist);
 	return n_auctions;
 }
