@@ -490,6 +490,7 @@ int Bid(char * AID, char * UID, char * value) {
 	token = strtok(NULL, " "); //Start hours
 
 	token = strtok(NULL, " "); //Start fulltime (time_t)
+	strcpy(fulltime, token);
 
 	int checkIfEnded = checkIfAuctionEnded(AID);
 	if (checkIfEnded == 1) {
@@ -675,7 +676,7 @@ void timeToString(time_t time, char * time_string) {
 	return;
 }
 
-int LoadBid(char * pathname, struct BIDLIST bid) {
+int LoadBid(char * pathname, struct BIDLIST * bid) {
 	if (get_mode_verbose()) printf("Loading bid from file %s\n", pathname);
 	
 	FILE * file = fopen(pathname, "r");
@@ -686,21 +687,22 @@ int LoadBid(char * pathname, struct BIDLIST bid) {
 
 	char bid_info[64];
 
+	memset(bid_info, 0, sizeof(bid_info));
+
 	if (fread(bid_info, 1, 64, file) <= 0) {
 		if (get_mode_verbose()) printf("Error reading from bid file\n");
 		return -1;
 	}
 
 	char * token = strtok(bid_info, " ");
-	strcpy(bid.UID, token);
+	strcpy(bid->UID, token);
 	token = strtok(NULL, " ");
-	strcpy(bid.value, token);
-	token = strtok(NULL, " ");
-	strcpy(bid.datetime, token);
-	token = strtok(NULL, "\n");
-	strcpy(bid.fulltime, token); //? CHECK THIS THING HERE
-
-	if (get_mode_verbose()) printf("UID: %s\nValue: %s\nDatetime: %s\nFulltime: %s\n (não é suposto ter 2 newlines)\n", bid.UID, bid.value, bid.datetime, bid.fulltime);
+	strcpy(bid->value, token);
+	token = token + strlen(token) + 1;
+	strncpy(bid->datetime, token, 19);
+	bid->datetime[19] = '\0';
+	token += 20;
+	strcpy(bid->fulltime, token); //? CHECK THIS THING HERE
 
 	fclose(file);
 
@@ -719,6 +721,8 @@ int GetBidList(char * AID, struct BIDLIST ** bidlist) {
 
 	n_entries = scandir(dirname, &filelist, 0, alphasort);
 
+	if (get_mode_verbose()) printf("Number of entries: %d\n", n_entries);
+
 	if (n_entries <= 0) {
 		if (get_mode_verbose()) printf("Error scanning directory\n");
 		return -1;
@@ -730,13 +734,14 @@ int GetBidList(char * AID, struct BIDLIST ** bidlist) {
 
 	*bidlist = (struct BIDLIST*)malloc((len) * sizeof(struct BIDLIST));
 
-	while (--n_entries) {
-		len = strlen(filelist[n_bids]->d_name);
-		if (get_mode_verbose()) printf("File name: %s\n", filelist[n_bids]->d_name);
+	while (n_entries--) {
+		len = strlen(filelist[n_entries]->d_name);
+		if (get_mode_verbose()) printf("File name: %s\n", filelist[n_entries]->d_name);
 		if (len == 10) {
-			sprintf(pathname, "ASDIR/AUCTIONS/%s/BIDS/%s", AID, filelist[n_bids]->d_name);
+			sprintf(pathname, "ASDIR/AUCTIONS/%s/BIDS/%s", AID, filelist[n_entries]->d_name);
 			if (get_mode_verbose()) printf("Pathname: %s\n", pathname);
-			if (LoadBid(pathname, (*bidlist)[n_bids])) {
+			if (LoadBid(pathname, &(*bidlist)[n_bids]) == 0) {
+				strcpy((*bidlist)[n_bids].AID, AID);
 				++n_bids;
 			}
 			free(filelist[n_entries]);

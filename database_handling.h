@@ -124,7 +124,7 @@ int ShowAsset(char * AID, int socket_fd);
  * 
  * @returns 0 if no error occurred, -1 if an error occurred
 */
-int LoadBid(char * pathname, struct BIDLIST bid);
+int LoadBid(char * pathname, struct BIDLIST * bid);
 
 /***
  * Function that checks if a user is logged in
