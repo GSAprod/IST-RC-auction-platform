@@ -439,7 +439,6 @@ void list_mybids_handling(char* message, struct sockaddr* to_addr, socklen_t to_
         if (get_mode_verbose()) printf("List my bids: User %s has no BIDS.\n", userID);
         //? Same here
         server_udp_send("RMB NOK\n", to_addr, to_addr_len);
-        free(bid_list);
         return;
     }
 
@@ -477,7 +476,6 @@ void list_auctions_handling(char * message, struct sockaddr* to_addr, socklen_t 
         if (get_mode_verbose()) printf("List auctions: There are no ongoing auctions.\n");
         //? Same here
         server_udp_send("RST NOK\n", to_addr, to_addr_len);
-        free(auction_list);
         return;
     }
 
