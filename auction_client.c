@@ -671,6 +671,7 @@ void makeBid(int arg_count, char arg_vals[][128]) {
     setup_TCP();
     tcp_connect();
 
+    printf("%s", buffer);
     tcp_send(buffer, strlen(buffer));
 
     memset(buffer, 0, sizeof buffer);

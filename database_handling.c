@@ -391,6 +391,8 @@ int GetHighestBid(char * AID) {
 	char curPath[256];
 	int n_entries, name_len;
 
+	if (get_mode_verbose()) printf("Getting highest bid from auction %s\n", AID);
+
 	// Check if the auction exists
 	sprintf(curPath, "ASDIR/AUCTIONS/%s/BIDS/", AID);
 	if (checkAssetFile(curPath)) {
@@ -408,29 +410,36 @@ int GetHighestBid(char * AID) {
 	}
 
 	int entries = n_entries;
+	long value = 0;
 
-	while(entries--) {
-		name_len=strlen(filelist[n_entries]->d_name);
-		if (name_len > 2) break;	//Ignore '.' and '..'
+	if (get_mode_verbose()) printf("Number of entries: %d\n", n_entries);
 
-		printf("%s\n", filelist[n_entries]->d_name);
+	while(--entries) {
+		name_len=strlen(filelist[entries]->d_name);
+		if (name_len > 2) {
+			char * str_token = strtok(filelist[entries]->d_name, ".");
+			value = atol(str_token);
+			break;
+		}
+
+		printf("%s\n", filelist[entries]->d_name);
 	}	
 
-	for (int i = 0; i < n_entries; i++) {
-		free(filelist[n_entries]);
+	for (int i = 0; i < entries; i++) {
+		free(filelist[i]);
 	}
 
 	free(filelist);
 
-	char * str_token = strtok(filelist[n_entries]->d_name, ".");
-
-	return atoi(str_token);
+	return value;
 }
 
 int Bid(char * AID, char * UID, char * value) {
 	char fileName[256];
 
 	if (get_mode_verbose()) printf("Bidding on auction %s\n", AID);
+
+	if (get_mode_verbose()) printf("UID: %s\nValue: %s\n", UID, value);
 
 	// TODO TEST THIS
 
@@ -472,6 +481,7 @@ int Bid(char * AID, char * UID, char * value) {
 	token = strtok(NULL, " "); //Name
 	token = strtok(NULL, " "); //Asset filename
 	token = strtok(NULL, " "); //Start value
+	int start_value = atoi(token);
 	
 	char time_active[10];
 	token = strtok(NULL, " "); //Time active
@@ -479,7 +489,11 @@ int Bid(char * AID, char * UID, char * value) {
 	
 	token = strtok(NULL, " "); //Start date
 
-	token = strtok(NULL, " "); //Start time
+	token = strtok(NULL, " "); //Start hours
+
+	token = strtok(NULL, " "); //Start fulltime (time_t)
+	if (get_mode_verbose()) printf("Start time: %s\n", token);
+	if (get_mode_verbose()) printf("Time active: %s\n", time_active);
 	time_t end_fulltime = atol(token) + atol(time_active);
 
 	if (end_fulltime <= now) {
@@ -487,14 +501,18 @@ int Bid(char * AID, char * UID, char * value) {
 		return -1; //* -1 = auction already ended
 	}
 
-	token = strtok(NULL, " "); //Start fulltime (time_t)
-
-	strcpy(fulltime, token);
-
 	int highestBid = GetHighestBid(AID);
-  printf("highest: %d\n", highestBid);
+  if (get_mode_verbose()) printf("Highest bid: %d\n", highestBid);
+	if (get_mode_verbose()) printf("Bid value: %ld\n", atol(value));
 
-  if (atoi(value) <= highestBid) {
+	if (highestBid == 0) {
+		if (atoi(value) < start_value) {
+			if (get_mode_verbose()) printf("Bid value is lower than the start value\n");
+			return -2; //* -2 = bid value is lower than the start value
+		}
+	}
+
+  if (atol(value) <= highestBid) {
   	if (get_mode_verbose()) printf("Bid value is lower than the highest bid\n");
     return -2; //* -2 = bid value is lower than the highest bid
   }
@@ -713,7 +731,7 @@ int GetBidList(char * AID, struct BIDLIST ** bidlist) {
 
 	*bidlist = (struct BIDLIST*)malloc((len) * sizeof(struct BIDLIST));
 
-	while (n_entries--) {
+	while (--n_entries) {
 		len = strlen(filelist[n_bids]->d_name);
 		if (get_mode_verbose()) printf("File name: %s\n", filelist[n_bids]->d_name);
 		if (len == 10) {
@@ -1102,7 +1120,7 @@ int GetAuctionsListByUserBidded(char * UID, struct AUCTIONLIST ** auction_list) 
 int CheckUserPassword(char * UID, char * password) {
 	char fileName[256];
 
-	sprintf(fileName, "ASDIR/USERS/%s/%s_pass->txt", UID, UID);
+	sprintf(fileName, "ASDIR/USERS/%s/%s_pass.txt", UID, UID);
 	if (checkAssetFile(fileName) <= 0) {
 		if (get_mode_verbose()) printf("User %s has no password defined\n", UID);
 		return -1;

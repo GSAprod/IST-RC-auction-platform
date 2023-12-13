@@ -557,10 +557,8 @@ void open_auction_handling(int socket_fd) {
 
     char * token = strtok(buffer, " ");
     strcpy(UID, token);
-    printf("UID: %s\n", UID);
     token = strtok(NULL, " ");
     strcpy(password, token);
-    printf("password: %s\n", password);
     token = strtok(NULL, " ");
     strcpy(name, token);
     token = strtok(NULL, " ");
@@ -576,6 +574,7 @@ void open_auction_handling(int socket_fd) {
 
     if (get_mode_verbose()) {
         printf("Open auction: User %s is trying to open an auction.\n", UID);
+        printf("Open auction: Password: %s\n", password);
         printf("Open auction: Name: %s\n", name);
         printf("Open auction: Start value: %s\n", start_value);
         printf("Open auction: Time active: %s\n", timea_active);
@@ -795,7 +794,7 @@ void bid_handling(int socket_fd) {
     ptr = auctionValue;
     memset(auctionValue, 0, sizeof auctionValue);
     i = 0;
-    for (i = 0; i < 17; i++) {
+    for (i = 0; i < 17; i++, ptr++) {
         if(i == 17 || server_tcp_receive(socket_fd, ptr, 1) <= 0) {
             memset(auctionValue, 0, sizeof auctionValue);
             server_tcp_send(socket_fd, "ERR\n", 4);
@@ -816,6 +815,8 @@ void bid_handling(int socket_fd) {
             return;
         }
     }
+
+    if (get_mode_verbose()) printf("userID: %s\nuserPasswd: %s\nauctionID: %s\nauctionValue: %s\n", userID, userPasswd, auctionID, auctionValue);
     
     /*
     // TODO Call BID function and react accordingly
@@ -871,6 +872,7 @@ int handle_udp_request() {
         return -1;   // Go to the next mesage
     }
 
+    memset(message_type, 0, sizeof message_type);
     // Get the first 4 characters of the message to determine its type
     strncpy(message_type, buffer, 4);
 
