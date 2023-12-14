@@ -178,7 +178,7 @@ int server_tcp_send(int socket_fd, char* message, int message_len);
  * @param max_len The maximum number of characters to be read
  * @note The number of characters received may be smaller than specified
  * 
- * @return 0 if the message is received correctly, -1 otherwise
+ * @return the length of the string received if the message is received correctly, -1 otherwise
 */
 int tcp_receive(char* dest, int max_len);
 

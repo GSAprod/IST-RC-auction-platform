@@ -88,19 +88,26 @@ int Unregister(char * UID);
  * 
  * @returns 0 if no error occurred, -1 if an error occurred
 */
-int CreateAuction(char * UID, char*name, char * asset_fname, char * start_value, char * time_active, char * start_datetime, time_t start_fulltime, char * file_size, int socket_fd, char * remaining_message, size_t remaining_size);
+int CreateAuction(char * UID, char*name, char * asset_fname, char * start_value, char * time_active, char * start_datetime, time_t start_fulltime, char * file_size, int socket_fd);
+
+/***
+ * Returns the highest value of a bid
+ * 
+ * @param AID The ID of the auction to get the highest bid
+ * @returns the highest bid value if there are bids, 0 if there are no bids,
+ * -1 if an error occurred
+*/
+int GetHighestBid(char * AID);
 
 /***
  * Function that creates a new bid
  * @param AID: Auction ID
  * @param UID: User ID
  * @param value: Bid value
- * @param datetime: Bid datetime
- * @param fulltime: Time since auction start (in seconds)
  * 
- * @returns 0 if no error occurred, -1 if an error occurred
+ * @returns 0 if no error occurred, -1 if auction has ended, -2 if bid has not the highest value, -3 if user is the owner, -4 if an error occurred
 */
-int Bid(char * AID, char * UID, char * value, char * datetime, char * fulltime);
+int Bid(char * AID, char * UID, char * value);
 
 /***
  * Opens the asset inside the folder of an auction and sends its data using TCP
@@ -117,7 +124,7 @@ int ShowAsset(char * AID, int socket_fd);
  * 
  * @returns 0 if no error occurred, -1 if an error occurred
 */
-int LoadBid(char * pathname, struct BIDLIST bid);
+int LoadBid(char * pathname, struct BIDLIST * bid);
 
 /***
  * Function that checks if a user is logged in

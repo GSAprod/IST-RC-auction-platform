@@ -175,8 +175,8 @@ Following the show_record command the User sends the AS a request for
 the record of auction AID.
 
 14. `RRC status [host_UID auction_name asset_fname start_value start_date-time timeactive]`\
-`[\nB bidder_UID bid_value bid_date-time bid_sec_time]*`\
-`[\nE end_date-time end_sec_time]`
+`[ B bidder_UID bid_value bid_date-time bid_sec_time]*`\
+`[ E end_date-time end_sec_time]\n`
 
     In reply to a SRC request the AS reply status is NOK if the auction AID does
 not exist. Otherwise the reply status is OK followed by information about the

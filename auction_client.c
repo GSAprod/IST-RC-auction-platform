@@ -15,7 +15,7 @@
 // soulindo -> Password
 
 // User credentials (they can be used in many requests to the server)
-char userID[6], userPasswd[8];
+char userID[7], userPasswd[9];
 
 void userLogout() {
     char buffer[128];
@@ -439,9 +439,7 @@ void openAuction(int arg_count, char arg_values[][128]) {
         printf("Open auction: Invalid response from server.\n");
     }
 
-    TCP_free();
     return;
-
 }
 
 void closeAuction(int arg_count, char arg_values[][128]) {
@@ -508,15 +506,11 @@ void closeAuction(int arg_count, char arg_values[][128]) {
 }
 
 void showAsset(int arg_count, char arg_values[][128]) {
-    char buffer[128];
+    char buffer[128], *ptr;
+    int status, char_count;
 
     if (arg_count != 2) {
         printf("Show asset: Wrong arguments given.\n\t>show_asset <asset_id>\n");
-        return;
-    }
-
-    if (!strcmp(userID, "")) {
-        printf("No user is logged in.\n");
         return;
     }
 
@@ -531,49 +525,81 @@ void showAsset(int arg_count, char arg_values[][128]) {
 
     tcp_send(buffer, strlen(buffer));
 
-    memset(buffer, 0, 128); // No need to clear the entire buffer
+    memset(buffer, 0, 128);
 
-    tcp_receive(buffer, 128);
-
-    char aux[4];
-    memset(aux, 0, sizeof aux);
-
-    strncpy(aux, buffer, 3);
-
-    if (strcmp(aux, "RSA")) {
+    // Check if the response type is RSA
+    status = tcp_receive(buffer, 4);
+    if (status != 4 || strcmp(buffer, "RSA ")) {
         printf("Show asset: Invalid response from server.\n");
         return;
     }
 
+    char aux[4];
     strncpy(aux, buffer + 4, 3);
+    memset(buffer, 0, 128);
 
-
-    if (!strcmp(aux, "OK ")) {
-        char * file_info = buffer + 7;
-
-        char fname[64];
-        char fsize[16];
-
-        memset(fname, 0, sizeof fname);
-        memset(fsize, 0, sizeof fsize);
-
-        char * token = strtok(file_info, " ");
-
-        strcpy(fname, token);
-
-        token = strtok(NULL, " ");
-
-        strcpy(fsize, token);
-
-        int fdata_beginning = 7 + strlen(fname) + strlen(fsize) + 2;
-
-        receiveFile(fname, atoi(fsize), buffer + fdata_beginning, 128 - fdata_beginning);
-        TCP_free();
+    // Get the status code
+    status = tcp_receive(buffer, 3);
+    if(status != 3) {
+        printf("Show asset: Invalid response from server.\n");
         return;
     }
 
-    TCP_free();
-    
+    if (!strcmp(buffer, "OK ")) {
+        char fname[64];
+        char fsize[16];
+
+        // Get the name of the file
+        memset(buffer, 0, 128);
+        ptr = buffer;
+        char_count = 0;
+        while((status = tcp_receive(ptr, 1)) > 0) {
+            if (*ptr == ' ') { *ptr = '\0'; break; }
+            if (!isalpha(*ptr) && *ptr != '-' && *ptr != '_'
+                    && *ptr != '.') { status = -1; break; }
+
+            char_count++;
+            if (char_count == 25) { status = -1; break; }
+            ptr++;
+        }
+        if (status == -1)  {
+            printf("Show asset: Invalid response from server.\n");
+            return;
+        }
+        strcpy(fname, buffer);
+
+        // Get the size of the file
+        memset(buffer, 0, 128);
+        ptr = buffer;
+        char_count = 0;
+        while((status = tcp_receive(ptr, 1)) > 0) {
+            if (*ptr == ' ') { *ptr = '\0'; break; }
+            if (!isdigit(*ptr)) { status = -1; break; }
+
+            char_count++;
+            if (char_count == 9) { status = -1; break; }
+            ptr++;
+        }
+        if (status == -1)  {
+            printf("Show asset: Invalid response from server.\n");
+            return;
+        }
+        strcpy(fsize, buffer);
+
+        receiveFile(fname, atoi(fsize));
+
+        memset(buffer, 0, sizeof buffer);
+        tcp_receive(buffer, 1);
+        if (strcmp(buffer, "\n")) {
+            printf("Invalid response from server\n");
+            return;
+        }
+        return;
+    } else if (!strcmp(buffer, "NOK")) {
+        printf("Show asset: There was a problem receiving the file.\n");
+        return;
+    }
+
 
 
     printf("Show asset: Invalid response from server.\n");
@@ -671,6 +697,7 @@ void makeBid(int arg_count, char arg_vals[][128]) {
     setup_TCP();
     tcp_connect();
 
+    printf("%s", buffer);
     tcp_send(buffer, strlen(buffer));
 
     memset(buffer, 0, sizeof buffer);

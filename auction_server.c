@@ -439,7 +439,6 @@ void list_mybids_handling(char* message, struct sockaddr* to_addr, socklen_t to_
         if (get_mode_verbose()) printf("List my bids: User %s has no BIDS.\n", userID);
         //? Same here
         server_udp_send("RMB NOK\n", to_addr, to_addr_len);
-        free(bid_list);
         return;
     }
 
@@ -477,7 +476,6 @@ void list_auctions_handling(char * message, struct sockaddr* to_addr, socklen_t 
         if (get_mode_verbose()) printf("List auctions: There are no ongoing auctions.\n");
         //? Same here
         server_udp_send("RST NOK\n", to_addr, to_addr_len);
-        free(auction_list);
         return;
     }
 
@@ -526,20 +524,11 @@ void show_record_handling(char * message, struct sockaddr* to_addr, socklen_t to
 }
 
 void open_auction_handling(int socket_fd) {
-    char buffer[256];
+    char buffer[2];
     char UID[7], password[9], name[32], start_value[16], timea_active[12], Fname[32], Fsize[64];
     char res[24];
 
-    // Receive some bytes of the message
     memset(buffer, 0, sizeof buffer);
-
-    if (server_tcp_receive(socket_fd, buffer, sizeof(buffer)) == -1) {
-        if (get_mode_verbose())
-            printf("Failed to receive TCP message. Closing connection.\n");
-        server_tcp_close(socket_fd);
-        return;
-    }
-
     memset(UID, 0, sizeof UID);
     memset(password, 0, sizeof password);
     memset(name, 0, sizeof name);
@@ -548,33 +537,50 @@ void open_auction_handling(int socket_fd) {
     memset(Fname, 0, sizeof Fname);
     memset(Fsize, 0, sizeof Fsize);
 
-    char * remaining = malloc(sizeof buffer);
-    memset(remaining, 0, sizeof buffer);
+   // Variables for parsing
+    char currentField[64];
+    int currentFieldIndex = 0;
 
+    // Receive bytes from the message
+    memset(currentField, 0, sizeof(currentField));
 
-    if (get_mode_verbose())
-        printf("Open auction: Received message: %s\n", buffer);
+    int read_size = 0;
+    int leave = 0;
 
-    char * token = strtok(buffer, " ");
-    strcpy(UID, token);
-    token = strtok(NULL, " ");
-    strcpy(password, token);
-    token = strtok(NULL, " ");
-    strcpy(name, token);
-    token = strtok(NULL, " ");
-    strcpy(start_value, token);
-    token = strtok(NULL, " ");
-    strcpy(timea_active, token);
-    token = strtok(NULL, " ");
-    strcpy(Fname, token);
-    token = strtok(NULL, " ");
-    strcpy(Fsize, token);
-    
-    if (get_mode_verbose()) printf("token: %s\n", token + strlen(Fsize) + 1);
-    strcpy(remaining, token + strlen(Fsize) + 1);
+    memset(buffer, 0, sizeof(buffer));
+
+    while (!leave && (read_size = server_tcp_receive(socket_fd, buffer, 1)) > 0) {
+        if (buffer[0] == ' ') {
+            // Space encountered, process the current field
+            switch (currentFieldIndex) {
+                case 0: strcpy(UID, currentField); break;
+                case 1: strcpy(password, currentField); break;
+                case 2: strcpy(name, currentField); break;
+                case 3: strcpy(start_value, currentField); break;
+                case 4: strcpy(timea_active, currentField); break;
+                case 5: strcpy(Fname, currentField); break;
+                case 6: strcpy(Fsize, currentField); leave = 1; break;
+            }
+            
+            // Move to the next field
+            memset(currentField, 0, sizeof(currentField));
+            currentFieldIndex++;
+        } else {
+            // Append the current character to the current field
+            strncat(currentField, buffer, 1);
+        }
+    }
+
+    if (read_size == -1) {
+        if (get_mode_verbose())
+            printf("Failed to receive TCP message. Closing connection.\n");
+        server_tcp_close(socket_fd);
+        return;
+    }
 
     if (get_mode_verbose()) {
         printf("Open auction: User %s is trying to open an auction.\n", UID);
+        printf("Open auction: Password: %s\n", password);
         printf("Open auction: Name: %s\n", name);
         printf("Open auction: Start value: %s\n", start_value);
         printf("Open auction: Time active: %s\n", timea_active);
@@ -583,29 +589,25 @@ void open_auction_handling(int socket_fd) {
     }
 
     // Check if the message is valid
-    //TODO: Verify all this shit
+    // TODO Verify
     if (CheckUserLogged(UID, password) != 1) {
         sprintf(res, "ROA NLG\n");
         server_tcp_send(socket_fd, res, strlen(res));
-        free(remaining);
         return;
     }
 
     char start_time[20];
     time_t now;
 
-    size_t remaining_size = sizeof(buffer) - ( strlen(UID) + strlen(password) + strlen(name) + strlen(start_value) + strlen(timea_active) + strlen(Fname) + strlen(Fsize) + 7);
-
     time(&now);
 
     timeToString(now, start_time);
 
-    int AID = CreateAuction(UID, name, Fname, start_value, timea_active, start_time, now, Fsize, socket_fd, remaining, remaining_size);
+    int AID = CreateAuction(UID, name, Fname, start_value, timea_active, start_time, now, Fsize, socket_fd);
 
     if (AID <= 0) {
         sprintf(res, "ROA NOK\n");
         server_tcp_send(socket_fd, res, strlen(res));
-        free(remaining);
         return;
     }
 
@@ -613,8 +615,6 @@ void open_auction_handling(int socket_fd) {
     server_tcp_send(socket_fd, res, strlen(res));
 
     server_tcp_close(socket_fd);
-
-    free(remaining);
 
     return;
 
@@ -708,10 +708,11 @@ void show_asset_handling(int socket_fd) {
             *ptr = '\0';
             break;
         }
+        i++;
         ptr++;
     }
 
-    if(!verify_format_AID(aid)) {
+    if(!verify_format_AID(aid) || i == 32) {
         if (get_mode_verbose()) printf("Invalid TCP request made to server.\n");
         memset(aid, 0, sizeof aid);
         strcpy(aid, "ERR\n");
@@ -719,13 +720,136 @@ void show_asset_handling(int socket_fd) {
         return;
     }
 
-    if (ShowAsset(aid, socket_fd) < 0) {
-        if (get_mode_verbose()) printf("Show asset: Auction %s does not exist.\n", aid);
+    if(ShowAsset(aid, socket_fd) == -1) {
         memset(aid, 0, sizeof aid);
-        strcpy(aid, "ERR\n");
+        strcpy(aid, "RSA NOK\n");
         server_tcp_send(socket_fd, aid, strlen(aid));
         return;
     }
+}
+
+/***
+ * Creates a new bid using the paramters specified in the TCP request.
+ * 
+ * @param socket_fd The socket where the parameters must be read
+*/
+void bid_handling(int socket_fd) {
+    char userID[7], userPasswd[9], auctionID[4], auctionValue[17];
+    char* ptr;
+
+    // Check if the userID is valid
+    ptr = userID;
+    memset(userID, 0, sizeof userID);
+    int i = 0;
+    while(server_tcp_receive(socket_fd, ptr, 1) > 0 && i < 7) {
+        if (*ptr == ' ') { *ptr = '\0'; break; }
+        if (*ptr == '\n') { i = 7; break; }
+
+        i++;
+        ptr++;
+    }
+    if(i == 7 || !verify_format_id(userID)) {
+        memset(userID, 0, sizeof userID);
+        strcpy(userID, "ERR\n");
+        server_tcp_send(socket_fd, userID, strlen(userID));
+        return;
+    }
+
+    // Check if the userPasswd is valid
+    ptr = userPasswd;
+    memset(userPasswd, 0, sizeof userPasswd);
+    i = 0;
+    while(server_tcp_receive(socket_fd, ptr, 1) > 0 && i < 9) {
+        if (*ptr == ' ') { *ptr = '\0'; break; }
+        if (*ptr == '\n') { i = 9; break; }
+        
+        i++;
+        ptr++;
+    }
+    if(i == 9 || !verify_format_password(userPasswd)) {
+        memset(userPasswd, 0, sizeof userPasswd);
+        strcpy(userPasswd, "ERR\n");
+        server_tcp_send(socket_fd, userPasswd, strlen(userPasswd));
+        return;
+    }
+
+    // Check if the auctionID is valid
+    ptr = auctionID;
+    memset(auctionID, 0, sizeof auctionID);
+    i = 0;
+    while(server_tcp_receive(socket_fd, ptr, 1) > 0 && i < 4) {
+        if (*ptr == ' ') { *ptr = '\0'; break; }
+        if (*ptr == '\n') { i = 4; break; }
+        
+        i++;
+        ptr++;
+    }
+    if(i == 4 || !verify_format_AID(auctionID)) {
+        memset(auctionID, 0, sizeof auctionID);
+        server_tcp_send(socket_fd, "ERR\n", 4);
+        return;
+    }
+
+    // Check if the bid value is valid
+    ptr = auctionValue;
+    memset(auctionValue, 0, sizeof auctionValue);
+    i = 0;
+    for (i = 0; i < 17; i++, ptr++) {
+        if(i == 17 || server_tcp_receive(socket_fd, ptr, 1) <= 0) {
+            memset(auctionValue, 0, sizeof auctionValue);
+            server_tcp_send(socket_fd, "ERR\n", 4);
+            return;
+        }
+
+        if(*ptr == '\n') { 
+            if (i == 0) {
+                memset(auctionValue, 0, sizeof auctionValue);
+                server_tcp_send(socket_fd, "ERR\n", 4);
+                return;
+            } else { *ptr = '\0'; break; }
+        }
+
+        if (!isdigit(*ptr)) {
+            memset(auctionValue, 0, sizeof auctionValue);
+            server_tcp_send(socket_fd, "ERR\n", 4);
+            return;
+        }
+    }
+
+    if (get_mode_verbose()) printf("userID: %s\nuserPasswd: %s\nauctionID: %s\nauctionValue: %s\n", userID, userPasswd, auctionID, auctionValue);
+    
+    /*
+    // TODO Call BID function and react accordingly
+    //! Movi esta logica para o BID para executar as cenas pela ordem do enunciado
+    int highestBid = GetHighestBid(auctionID);
+    printf("highest: %d\n", highestBid);
+
+    if (atoi(auctionValue) <= highestBid) {
+        memset(auctionValue, 0, sizeof auctionValue);
+        server_tcp_send(socket_fd, "RBD REF\n", 8);
+        return;
+    }
+    */
+
+    int status = Bid(auctionID, userID, auctionValue);
+    switch (status)
+    {
+    case 0:
+        server_tcp_send(socket_fd, "RBD ACC\n", 8);
+        break;
+    case -1:
+        server_tcp_send(socket_fd, "RBD NOK\n", 8);
+        break;
+    case -2:
+        server_tcp_send(socket_fd, "RBD REF\n", 8);
+        break;
+    case -3:
+        server_tcp_send(socket_fd, "RBD ILG\n", 8);
+        break;
+    default:
+        break;
+    }
+
 }
 
 /***
@@ -748,6 +872,7 @@ int handle_udp_request() {
         return -1;   // Go to the next mesage
     }
 
+    memset(message_type, 0, sizeof message_type);
     // Get the first 4 characters of the message to determine its type
     strncpy(message_type, buffer, 4);
 
@@ -834,7 +959,7 @@ int handle_tcp_request() {
     } else if(!strcmp(buffer, "SAS ")) {
         show_asset_handling(socket_fd);
     } else if(!strcmp(buffer, "BID ")) {
-        // TODO Bid handling routine
+        bid_handling(socket_fd);
     } else {
         // Send an error response using TCP
         status = server_tcp_send(socket_fd, "ERR\n", 4);
