@@ -439,6 +439,8 @@ void openAuction(int arg_count, char arg_values[][128]) {
         printf("Open auction: Invalid response from server.\n");
     }
 
+    TCP_free();
+
     return;
 }
 
@@ -529,6 +531,7 @@ void showAsset(int arg_count, char arg_values[][128]) {
 
     // Check if the response type is RSA
     status = tcp_receive(buffer, 4);
+    TCP_free();
     if (status != 4 || strcmp(buffer, "RSA ")) {
         printf("Show asset: Invalid response from server.\n");
         return;
@@ -971,8 +974,7 @@ int main(int argc, char *argv[]) {
         }
 
     }
-        printf("finish\n");
-        UDP_free();
-        TCP_free();
+    printf("finish\n");
+    UDP_free();
 }
 
