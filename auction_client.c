@@ -531,20 +531,17 @@ void showAsset(int arg_count, char arg_values[][128]) {
 
     // Check if the response type is RSA
     status = tcp_receive(buffer, 4);
-    TCP_free();
     if (status != 4 || strcmp(buffer, "RSA ")) {
         printf("Show asset: Invalid response from server.\n");
         return;
     }
-
-    char aux[4];
-    strncpy(aux, buffer + 4, 3);
-    memset(buffer, 0, 128);
-
+    memset(buffer, 0, sizeof buffer);
+    
     // Get the status code
     status = tcp_receive(buffer, 3);
     if(status != 3) {
         printf("Show asset: Invalid response from server.\n");
+        TCP_free();
         return;
     }
 
@@ -567,6 +564,7 @@ void showAsset(int arg_count, char arg_values[][128]) {
         }
         if (status == -1)  {
             printf("Show asset: Invalid response from server.\n");
+            TCP_free();
             return;
         }
         strcpy(fname, buffer);
@@ -585,6 +583,7 @@ void showAsset(int arg_count, char arg_values[][128]) {
         }
         if (status == -1)  {
             printf("Show asset: Invalid response from server.\n");
+            TCP_free();
             return;
         }
         strcpy(fsize, buffer);
@@ -595,15 +594,20 @@ void showAsset(int arg_count, char arg_values[][128]) {
         tcp_receive(buffer, 1);
         if (strcmp(buffer, "\n")) {
             printf("Invalid response from server\n");
+            TCP_free();
             return;
         }
+
+        TCP_free();
         return;
     } else if (!strcmp(buffer, "NOK")) {
         printf("Show asset: There was a problem receiving the file.\n");
+        TCP_free();
         return;
     }
 
 
+    TCP_free();
 
     printf("Show asset: Invalid response from server.\n");
     return;
