@@ -942,29 +942,28 @@ void handleAuctions(char *auctions) {
 
     if (c == 'B') {
         // Read bids
-        
-        i+= 2;
-        j= 0;
-
         printf("Bids:\n");
         int repeat = 1;
         while (repeat) {
+            i+= 2;
+            j= 0;
             repeat = 0;
             memset(buffer, 0, sizeof buffer);
             while (1) {
                 c = auctions[i];
                 if (c == 'B') {
                     repeat = 1;
+                    printf("-> %s\n", buffer);
                     break;
                 }
                 if (c == 'E' || c == '\0') {
+                    printf("-> %s", buffer);
                     break;
                 }
                 buffer[j] = c;
                 i++;
                 j++;
             }
-            printf("-> %s", buffer);
         }
         printf("\n");
     }

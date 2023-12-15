@@ -327,10 +327,7 @@ int CloseAuction(char * AID, char * UID) {
 	}
 	fclose(file);
 
-	char db_UID[6];
-
-	char * token = strtok(auction_info, " ");
-	strcpy(db_UID, token);
+	char db_UID[7];
 
 	if (strcmp(db_UID, UID)) {
 		if (get_mode_verbose()) printf("User %s is not the auction host\n", UID);
@@ -338,15 +335,7 @@ int CloseAuction(char * AID, char * UID) {
 	}
 
 	char start_fulltime[20];
-
-	token = strtok(NULL, " "); //Name
-	token = strtok(NULL, " "); //Asset filename
-	token = strtok(NULL, " "); //Start value
-	token = strtok(NULL, " "); //Time active
-	token = strtok(NULL, " "); //Start date
-	token = strtok(NULL, " "); //Start time
-	token = strtok(NULL, " "); //Start fulltime (time_t)
-	strcpy(start_fulltime, token);
+	sscanf(auction_info, "%s %*s %*s %*s %*s %*s %*s %s",db_UID, start_fulltime);
 
 	memset(fileName, 0, sizeof(fileName));
 
@@ -394,7 +383,6 @@ int CloseAuction(char * AID, char * UID) {
 	return 0;
 }
 
-// TODO TEST THIS FUNCTION
 int GetHighestBid(char * AID) {
 	struct dirent **filelist;
 	char curPath[256];
@@ -426,8 +414,7 @@ int GetHighestBid(char * AID) {
 	while(--entries) {
 		name_len=strlen(filelist[entries]->d_name);
 		if (name_len > 2) {
-			char * str_token = strtok(filelist[entries]->d_name, ".");
-			value = atol(str_token);
+			sscanf(filelist[entries]->d_name, "%ld.%*s", &value);
 			break;
 		}
 
@@ -454,10 +441,8 @@ int Bid(char * AID, char * UID, char * value) {
 	time(&now);
 
 	char datetime[20];
-	char fulltime[20];
 
 	memset(datetime, 0, sizeof(datetime));
-	memset(fulltime, 0, sizeof(fulltime));
 
 	timeToString(now, datetime);
 
@@ -484,24 +469,11 @@ int Bid(char * AID, char * UID, char * value) {
 	char UID_DB[7];
 	memset(UID_DB, 0, sizeof(UID_DB));
 
-	char * token = strtok(buffer, " "); //UID
-	strcpy(UID_DB, token);
+	int start_value;
+	int time_active;
+	long fulltime;
 
-	token = strtok(NULL, " "); //Name
-	token = strtok(NULL, " "); //Asset filename
-	token = strtok(NULL, " "); //Start value
-	int start_value = atoi(token);
-	
-	char time_active[10];
-	token = strtok(NULL, " "); //Time active
-	strcpy(time_active, token);
-	
-	token = strtok(NULL, " "); //Start date
-
-	token = strtok(NULL, " "); //Start hours
-
-	token = strtok(NULL, " "); //Start fulltime (time_t)
-	strcpy(fulltime, token);
+	sscanf(buffer, "%s %*s %*s %d %d %19[^\n] %ld", UID_DB, &start_value, &time_active, datetime, &fulltime);
 
 	int checkIfEnded = checkIfAuctionEnded(AID);
 	if (checkIfEnded == 1) {
@@ -518,14 +490,15 @@ int Bid(char * AID, char * UID, char * value) {
   if (get_mode_verbose()) printf("Highest bid: %d\n", highestBid);
 	if (get_mode_verbose()) printf("Bid value: %ld\n", atol(value));
 
+	int numeric_value = atoi(value);
+
 	if (highestBid == 0) {
-		if (atoi(value) < start_value) {
+		if (numeric_value < start_value) {
 			if (get_mode_verbose()) printf("Bid value is lower than the start value\n");
 			return -2; //* -2 = bid value is lower than the start value
 		}
 	}
 
-	int numeric_value = atoi(value);
 
   if (numeric_value <= highestBid) {
   	if (get_mode_verbose()) printf("Bid value is lower than the highest bid\n");
@@ -537,10 +510,10 @@ int Bid(char * AID, char * UID, char * value) {
 		return -3; //* -3 = user is the auction host
 	}
 
-	char * bid_info = malloc(strlen(UID) + strlen(value) + strlen(datetime) + strlen(fulltime) + 4);
+	char bid_info[128];
 
 	//Write to file info about the bid
-	sprintf(bid_info, "%s %06d %s %s", UID, numeric_value, datetime, fulltime);
+	sprintf(bid_info, "%s %06d %s %ld", UID, numeric_value, datetime, fulltime);
 
 	//Create bid file
 	memset(fileName, 0, sizeof(fileName));
@@ -558,7 +531,6 @@ int Bid(char * AID, char * UID, char * value) {
 		return -5;
 	}
 
-	free(bid_info);
 	fclose(file);
 
 	memset(fileName, 0, sizeof(fileName));
@@ -711,15 +683,11 @@ int LoadBid(char * pathname, struct BIDLIST * bid) {
 		return -1;
 	}
 
-	char * token = strtok(bid_info, " ");
-	strcpy(bid->UID, token);
-	token = strtok(NULL, " ");
-	strcpy(bid->value, token);
-	token = token + strlen(token) + 1;
-	strncpy(bid->datetime, token, 19);
-	bid->datetime[19] = '\0';
-	token += 20;
-	strcpy(bid->fulltime, token); //? CHECK THIS THING HERE
+	char fulltime[7];
+
+	sscanf(bid_info, "%s %s %19[^\n] %s", bid->UID, bid->value, bid->datetime, fulltime);
+
+	sprintf(bid->fulltime, "%06d", atoi(fulltime));
 
 	fclose(file);
 
@@ -768,6 +736,11 @@ int GetBidList(char * AID, struct BIDLIST ** bidlist) {
 		}
 		i++;
 	}
+
+	for (int i = 0; i < n_entries; i++) {
+		free(filelist[i]);
+	}
+
 	free(filelist);
 	return n_bids;
 }
@@ -805,34 +778,23 @@ int checkIfAuctionEnded(char * AID) {
 
 		char file_data[256];
 
-		char time_active[10];
-		char start_date_str[10];
-
-		memset(time_active, 0, sizeof(time_active));
-		memset(start_date_str, 0, sizeof(start_date_str));
-
 
 		if (fread(file_data, 1, sizeof(file_data), file) <= 0) {
 			if (get_mode_verbose()) printf("Error reading from start file\n");
 			return -1;
 		}
 
-		char * token = strtok(file_data, " "); //UID
-		token = strtok(NULL, " "); //Name
-		token = strtok(NULL, " "); //Asset filename
-		token = strtok(NULL, " "); //Start value
-		token = strtok(NULL, " "); //Time active
-		strcpy(time_active, token);
-		token = strtok(NULL, " "); //Start date
-		token = strtok(NULL, " "); //Start time
-		token = strtok(NULL, " "); //Start fulltime (time_t)
-		strcpy(start_date_str, token);
+		int time_active = 0;
+		long start_date = 0;
+
+		sscanf(file_data, "%*s %*s %*s %*s %d %*d-%*d-%*d %*d:%*d:%*d %ld", &time_active, &start_date);
 
 		fclose(file);
 
+		printf("Time active: %d\n", time_active);
+
 		time_t now;
-		time_t start_date = atol(start_date_str);
-		time_t end_date = start_date + atoi(time_active);
+		time_t end_date = start_date + time_active;
 
 		
 
@@ -917,35 +879,16 @@ int GetAuctionInfo(char * AID, char * message_ptr) {
 	char name[32];
 	char asset_fname[32];
 	char start_value[16];
-	char time_active[16];
+	int time_active;
 	char start_datetime[20];
-	char fulltime[16];
+	long fulltime;
 
-	char * token = strtok(auction_info, " ");
-	strcpy(UID, token);
+	sscanf(auction_info, "%s %s %s %s %d %19[^\n] %ld", UID, name, asset_fname, start_value, &time_active, start_datetime, &fulltime);
+
+	if (get_mode_verbose()) printf("UID: %s\nName: %s\nAsset filename: %s\nStart value: %s\nTime active: %d\nStart datetime: %s\n", UID, name, asset_fname, start_value, time_active, start_datetime);
+
+	sprintf(message_ptr, "%s %s %s %s %s %06d", UID, name, asset_fname, start_value, start_datetime, time_active);
 	
-	token = strtok(NULL, " ");
-	strcpy(name, token);
-
-	token = strtok(NULL, " ");
-	strcpy(asset_fname, token);
-
-	token = strtok(NULL, " ");
-	strcpy(start_value, token);
-
-	token = strtok(NULL, " ");
-	strcpy(time_active, token);
-
-	token = token + strlen(token) + 1;
-	strncpy(start_datetime, token, 19);
-	start_datetime[19] = '\0';
-
-	token += 20;
-	strcpy(fulltime, token);
-
-	if (get_mode_verbose()) printf("UID: %s\nName: %s\nAsset filename: %s\nStart value: %s\nTime active: %s\nStart datetime: %s\n", UID, name, asset_fname, start_value, time_active, start_datetime);
-
-	sprintf(message_ptr, "%s %s %s %s %s %s", UID, name, asset_fname, start_value, start_datetime, time_active);
 
 	// TODO Fix
 	message_ptr = message_ptr + strlen(message_ptr);
@@ -988,11 +931,7 @@ int GetAuctionInfo(char * AID, char * message_ptr) {
 		memset(end_datetime, 0, sizeof(end_datetime));
 		memset(time_passed, 0, sizeof(time_passed));
 
-		token = end_info;
-		strncpy(end_datetime, token, 19);
-
-		token = token + 20;
-		strcpy(time_passed, token);
+		sscanf(end_info, "%19[^\n] %s", end_datetime, time_passed);
 
 		sprintf(message_ptr, " E %s %s", end_datetime, time_passed);
 		message_ptr = message_ptr + strlen(message_ptr);
@@ -1137,11 +1076,13 @@ int GetAuctionsListByUserBidded(char * UID, struct AUCTIONLIST ** auction_list) 
 				(*auction_list)[n_auctions].active = checkIfAuctionEnded((*auction_list)[n_auctions].AID) ? 0 : 1;
 				++n_auctions;
 			}
-			free(filelist[n_entries]);
 		}
 		memset(pathname, 0, sizeof(pathname));
 	}
-	
+
+	for (i = 0; i < n_entries; i++) {
+		free(filelist[n_entries]);
+	}
 	
 	free(filelist);
 	return n_auctions;

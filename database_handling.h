@@ -14,10 +14,10 @@
 
 typedef struct BIDLIST {
 	char AID[4];
-	char value[12];
+	char value[7];
 	char UID[7];
 	char datetime[20];
-	char fulltime[12];
+	char fulltime[7];
 } BIDLIST;
 
 typedef struct AUCTIONLIST {
