@@ -500,7 +500,7 @@ void show_record_handling(char * message, struct sockaddr* to_addr, socklen_t to
 
     strtok(message, " ");    // This only gets the "SRC " string
 
-    // Get the user ID and verify if it's a 6-digit number
+    // Get the auction ID and verify if it's a 3-digit number
     char AID[4];
     strcpy(AID, strtok(NULL, "\n"));
     if (!verify_format_AID(AID)) {
@@ -515,7 +515,7 @@ void show_record_handling(char * message, struct sockaddr* to_addr, socklen_t to
 
     if (GetAuctionInfo(AID, res_ptr) < 0) {
         if (get_mode_verbose()) printf("Show record: Auction %s does not exist.\n", AID);
-        server_udp_send("RSR NOK\n", to_addr, to_addr_len);
+        server_udp_send("RRC NOK\n", to_addr, to_addr_len);
         return;
     }
 

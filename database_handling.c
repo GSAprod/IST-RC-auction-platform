@@ -742,25 +742,26 @@ int GetBidList(char * AID, struct BIDLIST ** bidlist) {
 
 	n_bids = 0;
 
-	len = n_entries >= 50 ? 50 : n_entries;
+	n_entries = n_entries >= 50 ? 50 : n_entries;
 
-	*bidlist = (struct BIDLIST*)malloc((len) * sizeof(struct BIDLIST));
+	*bidlist = (struct BIDLIST*)malloc((n_entries) * sizeof(struct BIDLIST));
 
-	while (n_entries--) {
-		len = strlen(filelist[n_entries]->d_name);
-		if (get_mode_verbose()) printf("File name: %s\n", filelist[n_entries]->d_name);
+	int i = 0;
+	while (i < n_entries) {
+		len = strlen(filelist[i]->d_name);
+		if (get_mode_verbose()) printf("File name: %s\n", filelist[i]->d_name);
 		if (len == 10) {
-			sprintf(pathname, "AUCTIONS/%s/BIDS/%s", AID, filelist[n_entries]->d_name);
+			sprintf(pathname, "AUCTIONS/%s/BIDS/%s", AID, filelist[i]->d_name);
 			if (get_mode_verbose()) printf("Pathname: %s\n", pathname);
 			if (LoadBid(pathname, &(*bidlist)[n_bids]) == 0) {
 				strcpy((*bidlist)[n_bids].AID, AID);
 				++n_bids;
+			} else {
+				if (get_mode_verbose()) printf("List bids: Last bid failed to open\n");
+				return -1;
 			}
-			free(filelist[n_entries]);
 		}
-		if (n_bids == 50) {
-			break;
-		}
+		i++;
 	}
 	free(filelist);
 	return n_bids;
@@ -939,8 +940,9 @@ int GetAuctionInfo(char * AID, char * message_ptr) {
 
 	if (get_mode_verbose()) printf("UID: %s\nName: %s\nAsset filename: %s\nStart value: %s\nTime active: %s\nStart datetime: %s\n", UID, name, asset_fname, start_value, time_active, start_datetime);
 
-	sprintf(message_ptr, "%s %s %s %s %s %s %s", UID, name, asset_fname, start_value, time_active, start_datetime, fulltime);
+	sprintf(message_ptr, "%s %s %s %s %s %s", UID, name, asset_fname, start_value, start_datetime, time_active);
 
+	// TODO Fix
 	message_ptr = message_ptr + strlen(message_ptr);
 
 	struct BIDLIST * bidlist = NULL;
@@ -950,7 +952,7 @@ int GetAuctionInfo(char * AID, char * message_ptr) {
 
 	for (int i = 0; i < n_bids; i++) {
 		if (get_mode_verbose()) printf("UID: %s\nValue: %s\nDatetime: %s\nFulltime: %s\n", bidlist[i].UID, bidlist[i].value, bidlist[i].datetime, bidlist[i].fulltime);
-		sprintf(message_ptr, "\nB %s %s %s %s", bidlist[i].UID, bidlist[i].value, bidlist[i].datetime, bidlist[i].fulltime);
+		sprintf(message_ptr, " B %s %s %s %s", bidlist[i].UID, bidlist[i].value, bidlist[i].datetime, bidlist[i].fulltime);
 		message_ptr = message_ptr + strlen(message_ptr);
 	}
 
@@ -987,7 +989,7 @@ int GetAuctionInfo(char * AID, char * message_ptr) {
 		token = token + 20;
 		strcpy(time_passed, token);
 
-		sprintf(message_ptr, "\nE %s %s", end_datetime, time_passed);
+		sprintf(message_ptr, " E %s %s", end_datetime, time_passed);
 		message_ptr = message_ptr + strlen(message_ptr);
 		
 	} else if (checkIfEnded == 0) {
