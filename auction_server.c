@@ -817,19 +817,6 @@ void bid_handling(int socket_fd) {
     }
 
     if (get_mode_verbose()) printf("userID: %s\nuserPasswd: %s\nauctionID: %s\nauctionValue: %s\n", userID, userPasswd, auctionID, auctionValue);
-    
-    /*
-    // TODO Call BID function and react accordingly
-    //! Movi esta logica para o BID para executar as cenas pela ordem do enunciado
-    int highestBid = GetHighestBid(auctionID);
-    printf("highest: %d\n", highestBid);
-
-    if (atoi(auctionValue) <= highestBid) {
-        memset(auctionValue, 0, sizeof auctionValue);
-        server_tcp_send(socket_fd, "RBD REF\n", 8);
-        return;
-    }
-    */
 
     int status = Bid(auctionID, userID, auctionValue);
     switch (status)
@@ -845,6 +832,9 @@ void bid_handling(int socket_fd) {
         break;
     case -3:
         server_tcp_send(socket_fd, "RBD ILG\n", 8);
+        break;
+    case -4:
+        server_tcp_send(socket_fd, "RBD NLG\n", 8);
         break;
     default:
         break;

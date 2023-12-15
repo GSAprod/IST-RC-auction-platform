@@ -409,6 +409,7 @@ void openAuction(int arg_count, char arg_values[][128]) {
     }
 
     tcp_send("\n", 1);
+    
 
     memset(buffer, 0, sizeof buffer);
 

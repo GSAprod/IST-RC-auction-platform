@@ -271,6 +271,7 @@ int CreateAuction(char * UID, char*name, char * asset_fname, char * start_value,
 
 	char test[2];
 	server_tcp_receive(socket_fd, test, 1);
+	test[1] = '\0';
 	if (strcmp(test, "\n")) {
 		if (get_mode_verbose()) printf("Invalid server response (newline missing)\n");
 		return -1;
@@ -470,11 +471,11 @@ int Bid(char * AID, char * UID, char * value) {
 	FILE * file = fopen(fileName, "r");
 	if (file == NULL) {
 		if (get_mode_verbose()) printf("Error creating bid file\n");
-		return -4;
+		return -5;
 	}
 	if (fread(buffer, 1, sizeof(buffer), file) <= 0) {
 		if (get_mode_verbose()) printf("Error reading from start file\n");
-		return -4;
+		return -5;
 	}
 
 	fclose(file);
@@ -506,6 +507,11 @@ int Bid(char * AID, char * UID, char * value) {
 	if (checkIfEnded == 1) {
 		if (get_mode_verbose()) printf("Auction %s ended\n", AID);
 		return -1; //* -1 = auction already ended
+	}
+
+	if (CheckUserLogged(UID, "") == 0) {
+		if (get_mode_verbose()) printf("User %s is not logged in\n", UID);
+		return -4; //* -4 = user is not logged in
 	}
 
 	int highestBid = GetHighestBid(AID);
@@ -549,7 +555,7 @@ int Bid(char * AID, char * UID, char * value) {
 	if (written != strlen(bid_info)) {
 		if (get_mode_verbose()) printf("Error writing to bid file\n");
 		fclose(file);
-		return -4;
+		return -5;
 	}
 
 	free(bid_info);
@@ -562,7 +568,7 @@ int Bid(char * AID, char * UID, char * value) {
 	file = fopen(fileName, "w");
 	if (file == NULL) {
 		if (get_mode_verbose()) printf("Error creating bid file\n");
-		return -4;
+		return -5;
 	}
 	fclose(file);
 
@@ -645,6 +651,16 @@ int CheckUserLogged(char * UID, char * password) {
 	char fileName[256];
 	if (get_mode_verbose()) printf("Checking if user %s is logged in\n", UID);
 
+	memset(fileName, 0, sizeof(fileName));
+	
+	sprintf(fileName, "USERS/%s/%s_login.txt", UID, UID);
+	if (!checkAssetFile(fileName)) {
+		if (get_mode_verbose()) printf("User %s is not logged in\n", UID);
+		return 0;
+	}
+
+	memset(fileName, 0, sizeof(fileName));
+
 	sprintf(fileName, "USERS/%s/%s_pass.txt", UID, UID);
 	if (!checkAssetFile(fileName)) {
 		if (get_mode_verbose()) printf("User %s is not registered\n", UID);
@@ -659,21 +675,10 @@ int CheckUserLogged(char * UID, char * password) {
 			return -2;
 		case 1:
 			if (get_mode_verbose()) printf("Correct password\n");
-			break;
+			return 1;
 		default:
 			if (get_mode_verbose()) printf("Error checking password\n");
 			return -2;
-	}
-
-	memset(fileName, 0, sizeof(fileName));
-	
-	sprintf(fileName, "USERS/%s/%s_login.txt", UID, UID);
-	if (checkAssetFile(fileName)) {
-		if (get_mode_verbose()) printf("User %s is logged in\n", UID);
-		return 1;
-	} else {
-		if (get_mode_verbose()) printf("User %s is not logged in\n", UID);
-		return 0;
 	}
 }
 

@@ -105,7 +105,7 @@ int GetHighestBid(char * AID);
  * @param UID: User ID
  * @param value: Bid value
  * 
- * @returns 0 if no error occurred, -1 if auction has ended, -2 if bid has not the highest value, -3 if user is the owner, -4 if an error occurred
+ * @returns 0 if no error occurred, -1 if auction has ended, -2 if bid has not the highest value, -3 if user is the owner, -4 if user is not logged in, -5 if an error occurred
 */
 int Bid(char * AID, char * UID, char * value);
 
