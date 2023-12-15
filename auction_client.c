@@ -811,117 +811,231 @@ void myBids(int arg_count) {
     }
 }
 
-void showRecord(int argc, char argv[][128]) {
+int aux_formatAuctionInfo(char* in_str, char* out_str) {
+    char* ptr = in_str;
+    char buffer[256];
 
-    void handleAuctions(char *auctions) {
-        char c = 'a';
-        int i = 0, j= 0;
-        char buffer[1024];
+    memset(out_str, 0, 90);
 
-        memset(buffer, 0, sizeof buffer);
+    // Read host UID
+    strcpy(out_str, "Auction record:\n================\nStarted by    | ");
+    int i = 0;
+    while(1) {
+        if (*ptr == ' ') { buffer[i] = '\0'; ptr++; break; }
+        if (!isdigit(*ptr)) return -1;
 
-        // Read auction
-        printf("Auction:\n");
-        while (1) {
-            c = auctions[i];
-            if (c == 'B' || c == '\0' || c == 'E') {
+        buffer[i++] = *ptr;
+        ptr++;
+    }
+    if (i != 6) return -1;
+    strcat(out_str, buffer);
+    memset(buffer, 0, sizeof buffer);
+
+    // Read auction name
+    strcat(out_str, "\nAuction name  | ");
+    i = 0;
+    while(1) {
+        if (*ptr == ' ') { buffer[i] = '\0'; ptr++; break; }
+        if ((!isalnum(*ptr) && *ptr != '.' && *ptr != '-' && *ptr != '_') || i >= 24) return -1;
+
+        buffer[i++] = *ptr;
+        ptr++;
+    }
+    if (i == 0) return -1;
+    strcat(out_str, buffer);
+    memset(buffer, 0, sizeof buffer);
+    
+    // Read name of asset
+    strcat(out_str, "\nName of asset | ");
+    i = 0;
+    while(1) {
+        if (*ptr == ' ') { buffer[i] = '\0'; ptr++; break; }
+        if ((!isalnum(*ptr) && *ptr != '.' && *ptr != '-' && *ptr != '_') || i >= 24) return -1;
+
+        buffer[i++] = *ptr;
+        ptr++;
+    }
+    if (i == 0) return -1;
+    strcat(out_str, buffer);
+    memset(buffer, 0, sizeof buffer);
+
+    // Read start value
+    strcat(out_str, "\nStart value   | ");
+    i = 0;
+    while(1) {
+        if (*ptr == ' ') { buffer[i] = '\0'; ptr++; break; }
+        if (!isdigit(*ptr) || i >= 6) return -1;
+
+        buffer[i++] = *ptr;
+        ptr++;
+    }
+    if (i == 0) return -1;
+    strcat(out_str, buffer);
+    memset(buffer, 0, sizeof buffer);
+
+    // Read start date time
+    strcat(out_str, "\nStarted at    | ");
+    i = 0;
+    int time_separator = 0;
+    while(1) {
+        if (*ptr == ' ') { 
+            if (time_separator == 1) {
+                buffer[i] = '\0'; 
+                ptr++; 
                 break;
-            }
-            buffer[j] = c;
-            i++;
-            j++;
+            } else time_separator = 1;
         }
-        printf("%s\n", buffer);
+        if (*ptr == '\n' || *ptr == '\0') return -1;
 
-        memset(buffer, 0, sizeof buffer);
+        buffer[i++] = *ptr;
+        ptr++;
+    }
+    if (i == 0) return -1;
+    strcat(out_str, buffer);
+    memset(buffer, 0, sizeof buffer);
 
-        if (c == 'B') {
-            // Read bids
-            
-            i+= 2;
-            j= 0;
+    // Read time active
+    strcat(out_str, "\nDuration      | ");
+    i = 0;
+    while(1) {
+        if (*ptr == ' ' || *ptr == '\n') { buffer[i] = '\0'; break; }
+        if (!isdigit(*ptr) || i >= 5) return -1;
 
-            printf("Bids:\n");
-            int repeat = 1;
-            while (repeat) {
-                repeat = 0;
-                memset(buffer, 0, sizeof buffer);
-                while (1) {
-                    c = auctions[i];
-                    if (c == 'B') {
-                        repeat = 1;
-                        break;
-                    }
-                    if (c == 'E' || c == '\0') {
-                        break;
-                    }
-                    buffer[j] = c;
-                    i++;
-                    j++;
-                }
-                printf("-> %s", buffer);
-            }
-            printf("\n");
+        buffer[i++] = *ptr;
+        ptr++;
+    }
+    if (i == 0) return -1;
+    strcat(out_str, buffer);
+    memset(buffer, 0, sizeof buffer);
+    strcat(out_str, "\n");
+
+    return 0;
+}
+/*
+int aux_formatAuctionBid(char* in_str, char* out_str) {
+    char* ptr = in_str;
+    char buffer[256];
+}
+*/
+
+void handleAuctions(char *auctions) {
+    char c = 'a';
+    int i = 0, j = 0;
+    char buffer[1024];
+
+    memset(buffer, 0, sizeof buffer);
+
+    // Read auction
+    printf("Auction:\n");
+    while (1) {
+        c = auctions[i];
+        if (c == 'B' || c == '\n' || c == 'E' || c == '\0') {
+            break;
         }
+        buffer[j] = c;
+        i++;
+        j++;
+    }
+    printf("%s\n", buffer);
 
-        if (c == 'E') {
-            i += 2;
-            j = 0;
+    memset(buffer, 0, sizeof buffer);
 
-            printf("End:\n");
+    if (c == 'B') {
+        // Read bids
+        
+        i+= 2;
+        j= 0;
 
+        printf("Bids:\n");
+        int repeat = 1;
+        while (repeat) {
+            repeat = 0;
             memset(buffer, 0, sizeof buffer);
             while (1) {
                 c = auctions[i];
-                if (c == '\0' || c == '\n') {
-                    i++;
+                if (c == 'B') {
+                    repeat = 1;
+                    break;
+                }
+                if (c == 'E' || c == '\0') {
                     break;
                 }
                 buffer[j] = c;
                 i++;
                 j++;
             }
-            printf("%s", buffer);
-            printf("\n");
+            printf("-> %s", buffer);
         }
-
-        return;
-
+        printf("\n");
     }
 
-    if (argc != 2 || strlen(argv[1]) != 3) {
+    if (c == 'E') {
+        i += 2;
+        j = 0;
+
+        printf("End:\n");
+
+        memset(buffer, 0, sizeof buffer);
+        while (1) {
+            c = auctions[i];
+            if (c == '\0' || c == '\n') {
+                i++;
+                break;
+            }
+            buffer[j] = c;
+            i++;
+            j++;
+        }
+        printf("%s", buffer);
+        printf("\n");
+    }
+
+    return;
+}
+
+void showRecord(int argc, char argv[][128]) {
+
+
+    // Verify if the function's arguments are correct
+    if (argc != 2 || strlen(argv[1]) != 3 || atoi(argv[1]) == 0) {
         printf("Wrong arguments given.\n\t> show_record <auction_id>\n\t> sr <auction_id>\n\t (auction_id: 3-digit number)\n");
         return;
     }
 
+    // Send the TCP request to the server
     char buffer[8192];
     memset(buffer, 0, sizeof buffer);
-
     sprintf(buffer, "SRC %s\n", argv[1]);
-
     udp_send(buffer);
 
+    // Receive the response from the server and start verifying and printing all
+    // arguments
     memset(buffer, 0, sizeof buffer);
-
     int status = udp_receive(buffer, sizeof buffer);
     if (status == -1) {
         printf("Show record: failed to receive response from server.\n");
         return;
     }
 
-    char aux[4];
+    char aux[5];
+    char *ptr = buffer;
     memset(aux, 0, sizeof aux);
-    strncpy(aux, buffer, 3);
-    if (strcmp(aux, "RRC")) {
+    strncpy(aux, ptr, 4);
+    if (strcmp(aux, "RRC ")) {
         printf("Show record: Invalid response from server.\n");
         return;
     }
 
+    ptr += 4;
     memset(aux, 0, sizeof aux);
-    strncpy(aux, buffer + 4, 3);
+    strncpy(aux, ptr, 3);
 
     if (!strcmp(aux, "NOK")) {
-        printf("Auction does not exist.\n");
+        if (*(buffer + 7) != '\n') {
+            printf("Show record: Invalid response from server.\n");
+        } else {
+            printf("Auction does not exist.\n");
+        }
         return;
     } else if (!strcmp(aux, "OK ")) {
         handleAuctions(buffer + 7);
