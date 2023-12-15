@@ -469,13 +469,13 @@ void list_auctions_handling(char * message, struct sockaddr* to_addr, socklen_t 
     if (get_mode_verbose()) printf("num_auctions: %d\n", num_auctions);
     if (num_auctions == -1) {
         if (get_mode_verbose()) printf("List auctions: User is not logged in.\n");
-        server_udp_send("RST NLG\n", to_addr, to_addr_len);
+        server_udp_send("RLS NLG\n", to_addr, to_addr_len);
         return;
     }
     if (num_auctions == 0) {
         if (get_mode_verbose()) printf("List auctions: There are no ongoing auctions.\n");
         //? Same here
-        server_udp_send("RST NOK\n", to_addr, to_addr_len);
+        server_udp_send("RLS NOK\n", to_addr, to_addr_len);
         return;
     }
 

@@ -36,7 +36,7 @@ auction_client
 auction_server
 
 ASDIR/
-client/
 reports/
 
 *connect_tejo*
+client/user

@@ -892,7 +892,7 @@ int GetAuctionInfo(char * AID, char * message_ptr) {
 
 	FILE * file = fopen(fileName, "r");
 	if (file == NULL) {
-		if (get_mode_verbose()) printf("Error opening file\n");
+		if (get_mode_verbose()) printf("Error opening auction start file\n");
 		return -1;
 	}
 
