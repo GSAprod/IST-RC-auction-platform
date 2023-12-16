@@ -18,7 +18,7 @@
 #include "database_handling.h"
 #define DEFAULT_PORT "58057"
 
-char port[8];
+char port[PORT_SIZE];
 
 void set_program_parameters(int argc, char* argv[]) {
     int port_int;
@@ -140,7 +140,7 @@ int verify_format_AID(char* string) {
 */
 void login_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_len) {
     char* token;
-    char userID[7], userPasswd[9];
+    char userID[UID_SIZE], userPasswd[PASSWORD_SIZE];
     int status;
 
     strtok(message, " ");    // This only gets the "LIN " string
@@ -208,7 +208,7 @@ void login_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_l
 */
 void logout_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_len) {
     char* token;
-    char userID[7], userPasswd[9];
+    char userID[UID_SIZE], userPasswd[PASSWORD_SIZE];
     int status;
 
     strtok(message, " ");    // This only gets the "LOU " string
@@ -284,7 +284,7 @@ void logout_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_
 */
 void unregister_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_len) {
     char* token;
-    char userID[7], userPasswd[9];
+    char userID[UID_SIZE], userPasswd[PASSWORD_SIZE];
     int status;
 
     strtok(message, " ");    // This only gets the "UNR " string
@@ -359,7 +359,7 @@ void unregister_handling(char* message, struct sockaddr* to_addr, socklen_t to_a
 */
 void list_myauctions_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_len) {
     char* token, *ptr;
-    char userID[7], response[8192];
+    char userID[UID_SIZE], response[LIST_BUFFER];
     int num_auctions;
 
     strtok(message, " ");    // This only gets the "LMA " string
@@ -395,7 +395,7 @@ void list_myauctions_handling(char* message, struct sockaddr* to_addr, socklen_t
 
     strcpy(response, "RMA OK");
     ptr = response + 6;
-    char aux[10];
+    char aux[SMALL_BUFFER];
     for(int i = 0; i < num_auctions; i++) {
         sprintf(aux, " %s %d", auction_list[i].AID, auction_list[i].active);
         strcpy(ptr, aux);
@@ -412,7 +412,7 @@ void list_myauctions_handling(char* message, struct sockaddr* to_addr, socklen_t
 
 void list_mybids_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_len) {
     char* token, *ptr;
-    char userID[7], response[8192];
+    char userID[UID_SIZE], response[LIST_BUFFER];
     int num_auctions;
     struct AUCTIONLIST * bid_list = NULL;
 
@@ -444,7 +444,7 @@ void list_mybids_handling(char* message, struct sockaddr* to_addr, socklen_t to_
 
     strcpy(response, "RMB OK");
     ptr = response + 6;
-    char aux[10];
+    char aux[SMALL_BUFFER];
     for(int i = 0; i < num_auctions; i++) {
         sprintf(aux, " %s %d", bid_list[i].AID, bid_list[i].active);
         strcpy(ptr, aux);
@@ -459,7 +459,7 @@ void list_mybids_handling(char* message, struct sockaddr* to_addr, socklen_t to_
 
 void list_auctions_handling(char * message, struct sockaddr* to_addr, socklen_t to_addr_len) {
     char *ptr;
-    char response[8192];
+    char response[LIST_BUFFER];
     int num_auctions;
     struct AUCTIONLIST * auction_list = NULL;
 
@@ -481,7 +481,7 @@ void list_auctions_handling(char * message, struct sockaddr* to_addr, socklen_t 
 
     strcpy(response, "RLS OK");
     ptr = response + 6;
-    char aux[10];
+    char aux[SMALL_BUFFER];
     for(int i = 0; i < num_auctions; i++) {
         sprintf(aux, " %s %d", auction_list[i].AID, auction_list[i].active);
         strcpy(ptr, aux);
@@ -495,14 +495,14 @@ void list_auctions_handling(char * message, struct sockaddr* to_addr, socklen_t 
 }  
 
 void show_record_handling(char * message, struct sockaddr* to_addr, socklen_t to_addr_len) {
-    char response[8192];
+    char response[LIST_BUFFER];
     char * res_ptr = response;
     memset(response, 0, sizeof(response));
 
     strtok(message, " ");    // This only gets the "SRC " string
 
     // Get the auction ID and verify if it's a 3-digit number
-    char AID[4];
+    char AID[AID_SIZE];
     strcpy(AID, strtok(NULL, "\n"));
     if (!verify_format_AID(AID)) {
         if (get_mode_verbose()) printf("Invalid UDP request made to server.\n");
@@ -526,9 +526,9 @@ void show_record_handling(char * message, struct sockaddr* to_addr, socklen_t to
 }
 
 void open_auction_handling(int socket_fd) {
-    char buffer[2];
-    char UID[7], password[9], name[32], start_value[16], timea_active[12], Fname[32], Fsize[64];
-    char res[24];
+    char buffer[SMALL_BUFFER];
+    char UID[UID_SIZE], password[PASSWORD_SIZE], name[FILENAME_SIZE], start_value[VALUE_SIZE], timea_active[TIMEPASSED_SIZE], Fname[FILENAME_SIZE], Fsize[FILE_SIZE_STR];
+    char res[SMALL_BUFFER];
 
     memset(buffer, 0, sizeof buffer);
     memset(UID, 0, sizeof UID);
@@ -540,7 +540,7 @@ void open_auction_handling(int socket_fd) {
     memset(Fsize, 0, sizeof Fsize);
 
    // Variables for parsing
-    char currentField[64];
+    char currentField[SMALL_BUFFER];
     int currentFieldIndex = 0;
 
     // Receive bytes from the message
@@ -597,7 +597,7 @@ void open_auction_handling(int socket_fd) {
         return;
     }
 
-    char start_time[20];
+    char start_time[DATETIME_SIZE];
     time_t now;
 
     time(&now);
@@ -620,7 +620,7 @@ void open_auction_handling(int socket_fd) {
 }
 
 void close_auction_handling(int socket_fd) {
-    char buffer[32];
+    char buffer[SMALL_BUFFER];
 
     // Receive the remaining bytes of the message
     memset(buffer, 0, sizeof buffer);
@@ -635,7 +635,7 @@ void close_auction_handling(int socket_fd) {
     }
     
     // Check if the message is valid
-    char UID[7], AID[4], password[9];
+    char UID[UID_SIZE], AID[AID_SIZE], password[PASSWORD_SIZE];
     sscanf(buffer, "%s %s %s\n", UID, password, AID);
 
     if (get_mode_verbose()) {
@@ -697,13 +697,14 @@ void close_auction_handling(int socket_fd) {
  * @param seocket_fd The socket that contains the auction number
 */
 void show_asset_handling(int socket_fd) {
-    char aid[32], *ptr;
+    char aid[AID_SIZE], *ptr;
+    char buffer[SMALL_BUFFER];
 
     memset(aid, 0, sizeof aid);
     ptr = aid;
 
     int i = 0;
-    while(server_tcp_receive(socket_fd, ptr, 1) > 0 && i < 32) {
+    while(server_tcp_receive(socket_fd, ptr, 1) > 0 && i <= AID_SIZE) {
         if (*ptr == '\n') {
             *ptr = '\0';
             break;
@@ -712,18 +713,18 @@ void show_asset_handling(int socket_fd) {
         ptr++;
     }
 
-    if(!verify_format_AID(aid) || i == 32) {
+    if(!verify_format_AID(aid) || i == AID_SIZE) {
         if (get_mode_verbose()) printf("Invalid TCP request made to server.\n");
-        memset(aid, 0, sizeof aid);
-        strcpy(aid, "ERR\n");
-        server_tcp_send(socket_fd, aid, strlen(aid));
+        memset(buffer, 0, sizeof buffer);
+        strcpy(buffer, "ERR\n");
+        server_tcp_send(socket_fd, buffer, strlen(buffer));
         return;
     }
 
     if(ShowAsset(aid, socket_fd) == -1) {
-        memset(aid, 0, sizeof aid);
-        strcpy(aid, "RSA NOK\n");
-        server_tcp_send(socket_fd, aid, strlen(aid));
+        memset(buffer, 0, sizeof buffer);
+        strcpy(buffer, "RSA NOK\n");
+        server_tcp_send(socket_fd, buffer, strlen(buffer));
         return;
     }
 }
@@ -734,7 +735,7 @@ void show_asset_handling(int socket_fd) {
  * @param socket_fd The socket where the parameters must be read
 */
 void bid_handling(int socket_fd) {
-    char userID[7], userPasswd[9], auctionID[4], auctionValue[17];
+    char userID[UID_SIZE], userPasswd[PASSWORD_SIZE], auctionID[AID_SIZE], auctionValue[VALUE_SIZE];
     char* ptr;
 
     // Check if the userID is valid
@@ -851,12 +852,12 @@ void bid_handling(int socket_fd) {
 */
 int handle_udp_request() {
     int status;
-    char buffer[256], message_type[5];
+    char buffer[MEDIUM_BUFFER], message_type[MESSAGE_TYPE_SIZE];
     struct sockaddr sender_addr;
     socklen_t sender_addr_len = sizeof(sender_addr);
 
     memset(buffer, 0, sizeof buffer);
-    status = server_udp_receive(buffer, 256, &sender_addr, &sender_addr_len);
+    status = server_udp_receive(buffer, sizeof(buffer), &sender_addr, &sender_addr_len);
     if (status == -1) {
         if (get_mode_verbose()) printf("Failed to receive request.\n");
         return -1;   // Go to the next mesage
@@ -901,7 +902,7 @@ int handle_udp_request() {
 
 int handle_tcp_request() {
     int socket_fd, status;
-    char buffer[8];
+    char buffer[TINY_BUFFER];
     struct timeval timeout;
 
     // Accept the new connection to the new socket

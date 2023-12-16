@@ -13,15 +13,15 @@
 #include <time.h>
 
 typedef struct BIDLIST {
-	char AID[4];
-	char value[7];
-	char UID[7];
-	char datetime[20];
-	char fulltime[7];
+	char AID[AID_SIZE];
+	char value[VALUE_SIZE];
+	char UID[UID_SIZE];
+	char datetime[DATETIME_SIZE];
+	char fulltime[FULLTIME_SIZE];
 } BIDLIST;
 
 typedef struct AUCTIONLIST {
-	char AID[4];
+	char AID[AID_SIZE];
 	int active;
 } AUCTIONLIST;
 

@@ -15,7 +15,7 @@
 // soulindo -> Password
 
 // User credentials (they can be used in many requests to the server)
-char userID[7], userPasswd[9];
+char userID[UID_SIZE], userPasswd[PASSWORD_SIZE];
 
 /***
  * Splits the prompt into a list of prompt arguments (similarly to argv in
@@ -26,7 +26,7 @@ char userID[7], userPasswd[9];
  * be written to
  * @return The number of arguments 
 */
-int promptToArgsList(char* prompt, char prompt_args[][128]) {
+int promptToArgsList(char* prompt, char prompt_args[][MEDIUM_BUFFER]) {
     int argCount = 0;
 
     // Split the string prompt until the first space character
@@ -54,10 +54,10 @@ int promptToArgsList(char* prompt, char prompt_args[][128]) {
  * @param args A list of arguments given to the function. The list should have
  * 3 arguments: the name of the command, the istID and a password.
 */
-void clientLogin(int arg_count, char args[][128]) {
+void clientLogin(int arg_count, char args[][MEDIUM_BUFFER]) {
     int scanf_success;
     int istId, passwdLen, status;
-    char buffer[128], aux[10];
+    char buffer[MEDIUM_BUFFER], aux[SMALL_BUFFER];
 
     // Argument verification
     if(arg_count != 3) {
@@ -134,7 +134,7 @@ void clientLogin(int arg_count, char args[][128]) {
 }
 
 void userLogout() {
-    char buffer[128];
+    char buffer[MEDIUM_BUFFER];
 
     // Check if the user is logged in
     if (!strcmp(userID, "") || !strcmp(userPasswd, "")) {
@@ -186,7 +186,7 @@ void userLogout() {
  * @param arg_count The number of arguments of the prompt
 */
 void clientUnregister(int arg_count) {
-    char buffer[128], aux[16];
+    char buffer[MEDIUM_BUFFER], aux[SMALL_BUFFER];
     int status;
 
     if (arg_count != 1) {
@@ -316,7 +316,7 @@ int printAuctions(char* auctionListStr) {
  * @param arg_count The number of arguments of the prompt
  */
 void listAllAuctions(int arg_count) {
-    char buffer[8192], aux[16];
+    char buffer[LIST_BUFFER], aux[SMALL_BUFFER];
     int status;
 
     if (arg_count != 1) {
@@ -375,7 +375,7 @@ void listAllAuctions(int arg_count) {
  * @param arg_count The number of arguments of the prompt
  */
 void listMyAuctions(int arg_count) {
-    char buffer[8192], aux[16];
+    char buffer[LIST_BUFFER], aux[SMALL_BUFFER];
     int status;
 
     if (arg_count != 1) {
@@ -443,7 +443,7 @@ void listMyAuctions(int arg_count) {
  * @param arg_count The number of arguments of the prompt
  */
 void myBids(int arg_count) {
-    char buffer[8192];
+    char buffer[LIST_BUFFER];
 
     if (arg_count != 1) {
         printf("List my bids: Wrong arguments given.\n\t> mybids\n\t> mb\n");
@@ -468,7 +468,7 @@ void myBids(int arg_count) {
         return;
     }
 
-    char aux[4];
+    char aux[SMALL_BUFFER];
     memset(aux, 0, sizeof aux);
 
     strncpy(aux, buffer, 3);
@@ -610,7 +610,7 @@ int aux_formatAuctionInfo(char* in_str, char* out_str) {
 
 int aux_formatAuctionBid(char* in_str, char* out_str) {
     char* ptr = in_str;
-    char bidderID[7], bid_value[7], bid_date[20], bid_seconds[6];
+    char bidderID[UID_SIZE], bid_value[VALUE_SIZE], bid_date[DATETIME_SIZE], bid_seconds[TIMEPASSED_SIZE];
     int bytesRead = 7;
 
     // Read bidder UID
@@ -674,7 +674,7 @@ int aux_formatAuctionBid(char* in_str, char* out_str) {
 
 int aux_formatAuctionEnd(char* in_str, char* out_str) {
     char* ptr = in_str;
-    char end_date[20], end_seconds[6];
+    char end_date[DATETIME_SIZE], end_seconds[TIMEPASSED_SIZE];
     int bytesRead = 0;
 
     // Read bid date and time
@@ -715,7 +715,7 @@ int aux_formatAuctionEnd(char* in_str, char* out_str) {
 
 void handleAuctions(char *auctions) {
     int status = 0, shift = 0;
-    char buffer[1024];
+    char buffer[LARGE_BUFFER];
 
     memset(buffer, 0, sizeof buffer);
 
@@ -761,7 +761,7 @@ void handleAuctions(char *auctions) {
     return;
 }
 
-void showRecord(int argc, char argv[][128]) {
+void showRecord(int argc, char argv[][MEDIUM_BUFFER]) {
 
 
     // Verify if the function's arguments are correct
@@ -771,7 +771,7 @@ void showRecord(int argc, char argv[][128]) {
     }
 
     // Send the TCP request to the server
-    char buffer[8192];
+    char buffer[LIST_BUFFER];
     memset(buffer, 0, sizeof buffer);
     sprintf(buffer, "SRC %s\n", argv[1]);
     udp_send(buffer);
@@ -785,7 +785,7 @@ void showRecord(int argc, char argv[][128]) {
         return;
     }
 
-    char aux[5];
+    char aux[SMALL_BUFFER];
     char *ptr = buffer;
     memset(aux, 0, sizeof aux);
     strncpy(aux, ptr, 4);
@@ -813,8 +813,8 @@ void showRecord(int argc, char argv[][128]) {
     }
 }
 
-void openAuction(int arg_count, char arg_values[][128]) {
-    char buffer[256];
+void openAuction(int arg_count, char arg_values[][MEDIUM_BUFFER]) {
+    char buffer[MEDIUM_BUFFER];
     char * name = arg_values[1];
     char * fname = arg_values[2];
     char * start_value = arg_values[3];
@@ -890,7 +890,7 @@ void openAuction(int arg_count, char arg_values[][128]) {
     return;
 }
 
-void closeAuction(int arg_count, char arg_values[][128]) {
+void closeAuction(int arg_count, char arg_values[][MEDIUM_BUFFER]) {
     if (arg_count != 2) {
         printf("Close auction: Wrong arguments given.\n\t>close <auction_id>\n");
         return;
@@ -903,7 +903,7 @@ void closeAuction(int arg_count, char arg_values[][128]) {
 
     char * auction_id = arg_values[1];
 
-    char buffer[128];
+    char buffer[MEDIUM_BUFFER];
     memset(buffer, 0, sizeof buffer);
 
     sprintf(buffer, "CLS %s %s %s\n", userID, userPasswd, auction_id);
@@ -921,7 +921,7 @@ void closeAuction(int arg_count, char arg_values[][128]) {
 
     printf("%s", buffer);
 
-    char aux[4];
+    char aux[SMALL_BUFFER];
     memset(aux, 0, sizeof aux);
 
     strncpy(aux, buffer, 3);
@@ -953,8 +953,8 @@ void closeAuction(int arg_count, char arg_values[][128]) {
     }
 }
 
-void showAsset(int arg_count, char arg_values[][128]) {
-    char buffer[128], *ptr;
+void showAsset(int arg_count, char arg_values[][MEDIUM_BUFFER]) {
+    char buffer[MEDIUM_BUFFER], *ptr;
     int status, char_count;
 
     if (arg_count != 2) {
@@ -973,7 +973,7 @@ void showAsset(int arg_count, char arg_values[][128]) {
 
     tcp_send(buffer, strlen(buffer));
 
-    memset(buffer, 0, 128);
+    memset(buffer, 0, MEDIUM_BUFFER);
 
     // Check if the response type is RSA
     status = tcp_receive(buffer, 4);
@@ -992,11 +992,11 @@ void showAsset(int arg_count, char arg_values[][128]) {
     }
 
     if (!strcmp(buffer, "OK ")) {
-        char fname[64];
-        char fsize[16];
+        char fname[FILENAME_SIZE];
+        char fsize[FILE_SIZE_STR];
 
         // Get the name of the file
-        memset(buffer, 0, 128);
+        memset(buffer, 0, MEDIUM_BUFFER);
         ptr = buffer;
         char_count = 0;
         while((status = tcp_receive(ptr, 1)) > 0) {
@@ -1016,7 +1016,7 @@ void showAsset(int arg_count, char arg_values[][128]) {
         strcpy(fname, buffer);
 
         // Get the size of the file
-        memset(buffer, 0, 128);
+        memset(buffer, 0, MEDIUM_BUFFER);
         ptr = buffer;
         char_count = 0;
         while((status = tcp_receive(ptr, 1)) > 0) {
@@ -1062,7 +1062,7 @@ void showAsset(int arg_count, char arg_values[][128]) {
 }
 
 
-void makeBid(int arg_count, char arg_vals[][128]) {
+void makeBid(int arg_count, char arg_vals[][MEDIUM_BUFFER]) {
     if (arg_count != 3) {
         printf("Make bid: Wrong arguments given.\n\t>bid <auction_id> <value>\n");
         return;
@@ -1076,7 +1076,7 @@ void makeBid(int arg_count, char arg_vals[][128]) {
     char * auction_id = arg_vals[1];
     char * value = arg_vals[2];
 
-    char buffer[128];
+    char buffer[MEDIUM_BUFFER];
     memset(buffer, 0, sizeof buffer);
 
     sprintf(buffer, "BID %s %s %s %s\n", userID, userPasswd, auction_id, value);
@@ -1093,7 +1093,7 @@ void makeBid(int arg_count, char arg_vals[][128]) {
 
     TCP_free();
 
-    char aux[4];
+    char aux[SMALL_BUFFER];
     memset(aux, 0, sizeof aux);
 
     strncpy(aux, buffer, 3);
@@ -1125,8 +1125,8 @@ void makeBid(int arg_count, char arg_vals[][128]) {
 }
 
 int main(int argc, char *argv[]) {
-    char prompt[512];
-    char prompt_args[16][128];
+    char prompt[MAX_PROMPT_SIZE];
+    char prompt_args[MAX_PROMPT_NUMBER][MEDIUM_BUFFER];
     int prompt_args_count;
 
     // Set the parameters of the server according to the program's arguments
