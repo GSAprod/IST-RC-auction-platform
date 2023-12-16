@@ -133,6 +133,12 @@ void clientLogin(int arg_count, char args[][MEDIUM_BUFFER]) {
     return;
 }
 
+/***
+ * Logout from the server using the credentials stored while logging in.
+ * The function checks if there are user credentials stored, and if so, sends
+ * a UDP request to log out the user from the server.
+ * The user credentials are stored the global variables called userId and userPasswd. 
+*/
 void userLogout() {
     char buffer[MEDIUM_BUFFER];
 
@@ -142,8 +148,8 @@ void userLogout() {
         return;
     }
     
-    sprintf(buffer, "LOU %s %s\n", userID, userPasswd);
     // Send the logout command to the server
+    sprintf(buffer, "LOU %s %s\n", userID, userPasswd);
     udp_send(buffer);
 
     memset(buffer, 0, sizeof buffer);
@@ -161,8 +167,7 @@ void userLogout() {
 
     if (!strcmp(buffer + 4, "OK\n")) {
         printf("successful logout\n");
-            
-        // Clear the user credentials
+
     } else if (!strcmp(buffer + 4, "NOK\n")) {
         printf("user not logged in\n");
     } else if (!strcmp(buffer + 4, "UNR\n")) {
@@ -173,7 +178,7 @@ void userLogout() {
     }
 
     // If the function didn't return before, then the user is now successfully
-    // unregistered/logged out. Let's wipe the credentials from our client as
+    // unregistered/logged out. Let's wipe the credentials from our program as
     // they are not required anymore.
     memset(userID, 0, sizeof userID);
     memset(userPasswd, 0, sizeof userPasswd);
@@ -181,6 +186,8 @@ void userLogout() {
 
 /***
  * Logs out and unregisters a user from the database.
+ * The function checks if there are credentails stored, and if so, sends a request
+ * to the server to unregister the client.
  * The user credentials are stored the global variables called userId and userPasswd. 
  * 
  * @param arg_count The number of arguments of the prompt
@@ -247,6 +254,12 @@ void clientUnregister(int arg_count) {
     memset(userPasswd, 0, sizeof userPasswd);
 }
 
+/***
+ * Checks if the user is logged out and terminates the program after closing the
+ * TCP and UDP connections.
+ * 
+ * @return 1 if the user is logged out, 0 otherwise
+*/
 int exitScript() {
     if (strcmp(userID, "") || strcmp(userPasswd, "")) {
         printf("User not logged out\n");
@@ -254,6 +267,8 @@ int exitScript() {
     }
     else {
         printf("Exiting...\n");
+        TCP_free();
+        UDP_free();
         return 1;
     }
 }
@@ -502,7 +517,14 @@ void myBids(int arg_count) {
     }
 }
 
-
+/***
+ * Receives a substring related to the info of an auction,
+ * taken from the show_record response, and formats it appropriately.
+ * 
+ * @param in_str The string to read the auction info
+ * @param out_str The pointer to where the formatted text should be written
+ * @return 0 if the string given is valid, -1 otherwise
+*/
 int aux_formatAuctionInfo(char* in_str, char* out_str) {
     char* ptr = in_str;
     char buffer[256];
@@ -608,6 +630,14 @@ int aux_formatAuctionInfo(char* in_str, char* out_str) {
     return bytesRead;
 }
 
+/***
+ * Receives a substring related to the info of a bid,
+ * taken from the show_record response, and formats it appropriately.
+ * 
+ * @param in_str The string to read the bid info
+ * @param out_str The pointer to where the formatted text should be written
+ * @return 0 if the string given is valid, -1 otherwise
+*/
 int aux_formatAuctionBid(char* in_str, char* out_str) {
     char* ptr = in_str;
     char bidderID[UID_SIZE], bid_value[VALUE_SIZE], bid_date[DATETIME_SIZE], bid_seconds[TIMEPASSED_SIZE];
@@ -672,6 +702,14 @@ int aux_formatAuctionBid(char* in_str, char* out_str) {
     return bytesRead;
 }
 
+/***
+ * Receives a substring related to the end information of an auction,
+ * taken from the show_record response, and formats it appropriately.
+ * 
+ * @param in_str The string to read the auction end info
+ * @param out_str The pointer to where the formatted text should be written
+ * @return 0 if the string given is valid, -1 otherwise
+*/
 int aux_formatAuctionEnd(char* in_str, char* out_str) {
     char* ptr = in_str;
     char end_date[DATETIME_SIZE], end_seconds[TIMEPASSED_SIZE];
@@ -713,6 +751,12 @@ int aux_formatAuctionEnd(char* in_str, char* out_str) {
     return bytesRead;
 }
 
+/***
+ * Checks if the show_record response is formatted correctly, and formats it and
+ * prints it onto the terminal.
+ * 
+ * @param auctions The show_record response received from the server
+*/
 void handleAuctions(char *auctions) {
     int status = 0, shift = 0;
     char buffer[LARGE_BUFFER];
@@ -761,8 +805,17 @@ void handleAuctions(char *auctions) {
     return;
 }
 
-void showRecord(int argc, char argv[][MEDIUM_BUFFER]) {
-
+/***
+ * Fetches the info about an auction, its last 50 bids, and whether the auction has
+ * ended or not.
+ * After checking if the arguments are correct, the function sends a request via
+ * UDP to the server, asking for the info of a certain auction.
+ * 
+ * @param argc The number of arguments for verification purposes
+ * @param argv The arguments given, containing the id of the auction we want
+ * to get the info from 
+*/
+void showRecord(int argc, char argv[][128]) {
 
     // Verify if the function's arguments are correct
     if (argc != 2 || strlen(argv[1]) != 3 || atoi(argv[1]) == 0) {
@@ -813,8 +866,17 @@ void showRecord(int argc, char argv[][MEDIUM_BUFFER]) {
     }
 }
 
-void openAuction(int arg_count, char arg_values[][MEDIUM_BUFFER]) {
-    char buffer[MEDIUM_BUFFER];
+/***
+ * Opens an auction on the server.
+ * After checking if the arguments are correct, this function sends a request
+ * using TCP to open a new auction, with the given parameters and asset file.
+ * 
+ * @param arg_count The number of arguments given (used for verification)
+ * @param arg_values The arguments given, such as the name of the auction, the
+ * name of the asset, and the start value and duration.
+*/
+void openAuction(int arg_count, char arg_values[][128]) {
+    char buffer[256];
     char * name = arg_values[1];
     char * fname = arg_values[2];
     char * start_value = arg_values[3];
@@ -828,13 +890,14 @@ void openAuction(int arg_count, char arg_values[][MEDIUM_BUFFER]) {
         return;
     }
 
+    // Check if there are any user credentials stored
     if (!strcmp(userID, "")) {
         printf("No user is logged in.\n");
         return;
     }
 
+    // Check if the asset exists and is not empty
     fsize = checkAssetFile(fname);
-
     if (fsize <= 0) {
         printf("Asset file does not exist or is empty.\n");
         return;
@@ -858,6 +921,7 @@ void openAuction(int arg_count, char arg_values[][MEDIUM_BUFFER]) {
 
     memset(buffer, 0, sizeof buffer);
 
+    // Receives and verifies the response given by the server
     tcp_receive(buffer, sizeof buffer);
 
     printf("%s", buffer);
@@ -890,12 +954,19 @@ void openAuction(int arg_count, char arg_values[][MEDIUM_BUFFER]) {
     return;
 }
 
-void closeAuction(int arg_count, char arg_values[][MEDIUM_BUFFER]) {
+/***
+ * Requests the server to close a certain auction, specified by its AID.
+ * 
+ * @param arg_count The number of arguments given (for verification purposes)
+ * @param arg_values The arguments given, containing the ID of the auction
+*/
+void closeAuction(int arg_count, char arg_values[][128]) {
     if (arg_count != 2) {
         printf("Close auction: Wrong arguments given.\n\t>close <auction_id>\n");
         return;
     }
 
+    // Check if there are any user credentials stored
     if (!strcmp(userID, "")) {
         printf("No user is logged in.\n");
         return;
@@ -903,7 +974,8 @@ void closeAuction(int arg_count, char arg_values[][MEDIUM_BUFFER]) {
 
     char * auction_id = arg_values[1];
 
-    char buffer[MEDIUM_BUFFER];
+    // Sends the close request to the server
+    char buffer[128];
     memset(buffer, 0, sizeof buffer);
 
     sprintf(buffer, "CLS %s %s %s\n", userID, userPasswd, auction_id);
@@ -915,6 +987,7 @@ void closeAuction(int arg_count, char arg_values[][MEDIUM_BUFFER]) {
 
     memset(buffer, 0, sizeof buffer);
 
+    // Receives the response and verifies if the format is correct
     tcp_receive(buffer, sizeof buffer);
 
     TCP_free();
@@ -953,8 +1026,14 @@ void closeAuction(int arg_count, char arg_values[][MEDIUM_BUFFER]) {
     }
 }
 
-void showAsset(int arg_count, char arg_values[][MEDIUM_BUFFER]) {
-    char buffer[MEDIUM_BUFFER], *ptr;
+/***
+ * Requests the download of an asset from a particular auction.
+ * 
+ * @param arg_count The number of arguments given (for verification purposes)
+ * @param arg_values The arguments given, containing the ID of the auction
+*/
+void showAsset(int arg_count, char arg_values[][128]) {
+    char buffer[128], *ptr;
     int status, char_count;
 
     if (arg_count != 2) {
@@ -1034,6 +1113,7 @@ void showAsset(int arg_count, char arg_values[][MEDIUM_BUFFER]) {
         }
         strcpy(fsize, buffer);
 
+        // Receive the contents of the file
         receiveFile(fname, atoi(fsize));
 
         memset(buffer, 0, sizeof buffer);
@@ -1061,13 +1141,20 @@ void showAsset(int arg_count, char arg_values[][MEDIUM_BUFFER]) {
     return;
 }
 
-
-void makeBid(int arg_count, char arg_vals[][MEDIUM_BUFFER]) {
+/***
+ * Requests the server for a bid on a certain auction.
+ * 
+ * @param arg_count The number of arguments given (for verification purposes)
+ * @param arg_values The arguments given, containing the ID of the auction and
+ * the value to bid
+*/
+void makeBid(int arg_count, char arg_vals[][128]) {
     if (arg_count != 3) {
         printf("Make bid: Wrong arguments given.\n\t>bid <auction_id> <value>\n");
         return;
     }
 
+    // Check if there are any user credentials stored
     if (!strcmp(userID, "")) {
         printf("No user is logged in.\n");
         return;
@@ -1076,7 +1163,8 @@ void makeBid(int arg_count, char arg_vals[][MEDIUM_BUFFER]) {
     char * auction_id = arg_vals[1];
     char * value = arg_vals[2];
 
-    char buffer[MEDIUM_BUFFER];
+    // Sends the bidding request to the server
+    char buffer[128];
     memset(buffer, 0, sizeof buffer);
 
     sprintf(buffer, "BID %s %s %s %s\n", userID, userPasswd, auction_id, value);
@@ -1089,6 +1177,7 @@ void makeBid(int arg_count, char arg_vals[][MEDIUM_BUFFER]) {
 
     memset(buffer, 0, sizeof buffer);
 
+    // Receives the response and verifies if the format is correct
     tcp_receive(buffer, sizeof buffer);
 
     TCP_free();
@@ -1173,6 +1262,5 @@ int main(int argc, char *argv[]) {
 
     }
     printf("finish\n");
-    UDP_free();
 }
 
