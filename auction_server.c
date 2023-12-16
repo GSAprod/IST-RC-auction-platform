@@ -576,7 +576,6 @@ void open_auction_handling(int socket_fd) {
     if (read_size == -1) {
         if (get_mode_verbose())
             printf("Failed to receive TCP message. Closing connection.\n");
-        server_tcp_close(socket_fd);
         return;
     }
 
@@ -615,8 +614,6 @@ void open_auction_handling(int socket_fd) {
 
     sprintf(res, "ROA OK %03d\n", AID);
     server_tcp_send(socket_fd, res, strlen(res));
-
-    server_tcp_close(socket_fd);
 
     return;
 
@@ -689,6 +686,7 @@ void close_auction_handling(int socket_fd) {
             return;
     }
 
+    server_tcp_send(socket_fd, "RCL ERR\n", 8);
     return;
 }
 

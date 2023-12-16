@@ -17,52 +17,6 @@
 // User credentials (they can be used in many requests to the server)
 char userID[7], userPasswd[9];
 
-void userLogout() {
-    char buffer[128];
-
-    // Check if the user is logged in
-    if (!strcmp(userID, "") || !strcmp(userPasswd, "")) {
-        printf("user not logged in\n");
-        return;
-    }
-    
-    sprintf(buffer, "LOU %s %s\n", userID, userPasswd);
-    // Send the logout command to the server
-    udp_send(buffer);
-
-    memset(buffer, 0, sizeof buffer);
-
-    // Receive the response from the server
-    udp_receive(buffer, sizeof buffer);
-
-    // Check if the response is correct
-    char * token = strtok(buffer, " ");
-
-    if (strcmp(token, "RLO")) {
-        printf("Logout: Invalid response from server.\n");
-        return;
-    }
-
-    if (!strcmp(buffer + 4, "OK\n")) {
-        printf("successful logout\n");
-            
-        // Clear the user credentials
-    } else if (!strcmp(buffer + 4, "NOK\n")) {
-        printf("user not logged in\n");
-    } else if (!strcmp(buffer + 4, "UNR\n")) {
-        printf("unknown user\n");
-    } else {
-        printf("Logout: Invalid response from server.\n");
-        return;
-    }
-
-    // If the function didn't return before, then the user is now successfully
-    // unregistered/logged out. Let's wipe the credentials from our client as
-    // they are not required anymore.
-    memset(userID, 0, sizeof userID);
-    memset(userPasswd, 0, sizeof userPasswd);
-}
-
 /***
  * Splits the prompt into a list of prompt arguments (similarly to argv in
  * the main function)
@@ -179,15 +133,50 @@ void clientLogin(int arg_count, char args[][128]) {
     return;
 }
 
-int exitScript() {
-    if (strcmp(userID, "") || strcmp(userPasswd, "")) {
-        printf("User not logged out\n");
-        return 0;
+void userLogout() {
+    char buffer[128];
+
+    // Check if the user is logged in
+    if (!strcmp(userID, "") || !strcmp(userPasswd, "")) {
+        printf("user not logged in\n");
+        return;
     }
-    else {
-        printf("Exiting...\n");
-        return 1;
+    
+    sprintf(buffer, "LOU %s %s\n", userID, userPasswd);
+    // Send the logout command to the server
+    udp_send(buffer);
+
+    memset(buffer, 0, sizeof buffer);
+
+    // Receive the response from the server
+    udp_receive(buffer, sizeof buffer);
+
+    // Check if the response is correct
+    char * token = strtok(buffer, " ");
+
+    if (strcmp(token, "RLO")) {
+        printf("Logout: Invalid response from server.\n");
+        return;
     }
+
+    if (!strcmp(buffer + 4, "OK\n")) {
+        printf("successful logout\n");
+            
+        // Clear the user credentials
+    } else if (!strcmp(buffer + 4, "NOK\n")) {
+        printf("user not logged in\n");
+    } else if (!strcmp(buffer + 4, "UNR\n")) {
+        printf("unknown user\n");
+    } else {
+        printf("Logout: Invalid response from server.\n");
+        return;
+    }
+
+    // If the function didn't return before, then the user is now successfully
+    // unregistered/logged out. Let's wipe the credentials from our client as
+    // they are not required anymore.
+    memset(userID, 0, sizeof userID);
+    memset(userPasswd, 0, sizeof userPasswd);
 }
 
 /***
@@ -256,6 +245,17 @@ void clientUnregister(int arg_count) {
     // they are not required anymore.
     memset(userID, 0, sizeof userID);
     memset(userPasswd, 0, sizeof userPasswd);
+}
+
+int exitScript() {
+    if (strcmp(userID, "") || strcmp(userPasswd, "")) {
+        printf("User not logged out\n");
+        return 0;
+    }
+    else {
+        printf("Exiting...\n");
+        return 1;
+    }
 }
 
 /***
@@ -368,254 +368,6 @@ void listAllAuctions(int arg_count) {
     }
 }
 
-void openAuction(int arg_count, char arg_values[][128]) {
-    char buffer[256];
-    char * name = arg_values[1];
-    char * fname = arg_values[2];
-    char * start_value = arg_values[3];
-    char * time_active = arg_values[4];
-    int fsize;
-
-    memset(buffer, 0, sizeof buffer);
-
-    if (arg_count != 5) {
-        printf("Open auction: Wrong arguments given.\n\t>open <asset> <asset_fname> <start_value> <time_active>\n");
-        return;
-    }
-
-    if (!strcmp(userID, "")) {
-        printf("No user is logged in.\n");
-        return;
-    }
-
-    fsize = checkAssetFile(fname);
-
-    if (fsize <= 0) {
-        printf("Asset file does not exist or is empty.\n");
-        return;
-    }
-
-    setup_TCP();
-    tcp_connect();
-
-    //Sends the beginning of the TCP message
-    sprintf(buffer, "OPA %s %s %s %s %s %s %d ", userID, userPasswd , name, start_value , time_active, fname, fsize);
-    tcp_send(buffer, strlen(buffer));
-    
-    //Sends the file
-    if (sendFile(fname, fsize)) {
-        printf("Open auction: failed to send file.\n");
-        return;
-    }
-
-    tcp_send("\n", 1);
-    
-
-    memset(buffer, 0, sizeof buffer);
-
-    tcp_receive(buffer, sizeof buffer);
-
-    printf("%s", buffer);
-    char *token = strtok(buffer, " ");
-
-    if (strcmp(token, "ROA")) {
-        printf("Open auction: Invalid response from server.\n");
-        TCP_free();
-        return;
-    }
-
-    token = strtok(NULL, " ");
-
-    if (!strcmp(token, "NOK\n")) {
-        printf("Could not open auction.\n");
-    }
-    else if (!strcmp(token, "NLG\n")) {
-        printf("No user is logged in.\n");
-    }
-    else if (!strcmp(token, "OK")) {
-        token = strtok(NULL, " ");
-        printf("Auction %s opened with ID %s.\n", name, token);
-    }
-    else {
-        printf("Open auction: Invalid response from server.\n");
-    }
-
-    TCP_free();
-
-    return;
-}
-
-void closeAuction(int arg_count, char arg_values[][128]) {
-    if (arg_count != 2) {
-        printf("Close auction: Wrong arguments given.\n\t>close <auction_id>\n");
-        return;
-    }
-
-    if (!strcmp(userID, "")) {
-        printf("No user is logged in.\n");
-        return;
-    }
-
-    char * auction_id = arg_values[1];
-
-    char buffer[128];
-    memset(buffer, 0, sizeof buffer);
-
-    sprintf(buffer, "CLS %s %s %s\n", userID, userPasswd, auction_id);
-
-    setup_TCP();
-    tcp_connect();
-
-    tcp_send(buffer, strlen(buffer));
-
-    memset(buffer, 0, sizeof buffer);
-
-    tcp_receive(buffer, sizeof buffer);
-
-    TCP_free();
-
-    printf("%s", buffer);
-
-    char aux[4];
-    memset(aux, 0, sizeof aux);
-
-    strncpy(aux, buffer, 3);
-
-    if (strcmp(aux, "RCL")) {
-        printf("Close auction: Invalid response from server.\n");
-        return;
-    }
-
-    printf("%s", buffer + 4);
-
-    if (!strcmp(buffer + 4, "OK\n")) {
-        printf("Auction successfully closed.\n");
-        return;
-    }
-    else if (!strcmp(buffer + 4, "NLG\n")) {
-        printf("User is not logged in.\n");
-    }
-    else if (!strcmp(buffer + 4, "EAU\n")) {
-        printf("Auction does not exist.\n");
-    }
-    else if (!strcmp(buffer + 4, "EOW\n")) {
-        printf("Auction not owned by user.\n");
-    }
-    else if (!strcmp(buffer + 4, "END\n")) {
-        printf("Auction already closed.\n");
-    } else {
-        printf("Close auction: Invalid response from server.\n");
-    }
-}
-
-void showAsset(int arg_count, char arg_values[][128]) {
-    char buffer[128], *ptr;
-    int status, char_count;
-
-    if (arg_count != 2) {
-        printf("Show asset: Wrong arguments given.\n\t>show_asset <asset_id>\n");
-        return;
-    }
-
-    char * asset_id = arg_values[1];
-
-    memset(buffer, 0, sizeof buffer);
-
-    sprintf(buffer, "SAS %s\n", asset_id);
-
-    setup_TCP();
-    tcp_connect();
-
-    tcp_send(buffer, strlen(buffer));
-
-    memset(buffer, 0, 128);
-
-    // Check if the response type is RSA
-    status = tcp_receive(buffer, 4);
-    if (status != 4 || strcmp(buffer, "RSA ")) {
-        printf("Show asset: Invalid response from server.\n");
-        return;
-    }
-    memset(buffer, 0, sizeof buffer);
-    
-    // Get the status code
-    status = tcp_receive(buffer, 3);
-    if(status != 3) {
-        printf("Show asset: Invalid response from server.\n");
-        TCP_free();
-        return;
-    }
-
-    if (!strcmp(buffer, "OK ")) {
-        char fname[64];
-        char fsize[16];
-
-        // Get the name of the file
-        memset(buffer, 0, 128);
-        ptr = buffer;
-        char_count = 0;
-        while((status = tcp_receive(ptr, 1)) > 0) {
-            if (*ptr == ' ') { *ptr = '\0'; break; }
-            if (!isalpha(*ptr) && *ptr != '-' && *ptr != '_'
-                    && *ptr != '.') { status = -1; break; }
-
-            char_count++;
-            if (char_count == 25) { status = -1; break; }
-            ptr++;
-        }
-        if (status == -1)  {
-            printf("Show asset: Invalid response from server.\n");
-            TCP_free();
-            return;
-        }
-        strcpy(fname, buffer);
-
-        // Get the size of the file
-        memset(buffer, 0, 128);
-        ptr = buffer;
-        char_count = 0;
-        while((status = tcp_receive(ptr, 1)) > 0) {
-            if (*ptr == ' ') { *ptr = '\0'; break; }
-            if (!isdigit(*ptr)) { status = -1; break; }
-
-            char_count++;
-            if (char_count == 9) { status = -1; break; }
-            ptr++;
-        }
-        if (status == -1)  {
-            printf("Show asset: Invalid response from server.\n");
-            TCP_free();
-            return;
-        }
-        strcpy(fsize, buffer);
-
-        receiveFile(fname, atoi(fsize));
-
-        memset(buffer, 0, sizeof buffer);
-        tcp_receive(buffer, 1);
-        if (strcmp(buffer, "\n")) {
-            printf("Invalid response from server\n");
-            TCP_free();
-            return;
-        }
-
-        TCP_free();
-
-        printf("Asset downloaded: %s (%s bytes)\n", fname, fsize);
-        return;
-    } else if (!strcmp(buffer, "NOK")) {
-        printf("Show asset: There was a problem receiving the file.\n");
-        TCP_free();
-        return;
-    }
-
-
-    TCP_free();
-
-    printf("Show asset: Invalid response from server.\n");
-    return;
-}
-
 /***
  * Lists all auctions that the logged in user (with login credentials in the
  * global variables userId and userPasswd) has created.
@@ -684,69 +436,6 @@ void listMyAuctions(int arg_count) {
     }
 }
 
-
-void makeBid(int arg_count, char arg_vals[][128]) {
-    if (arg_count != 3) {
-        printf("Make bid: Wrong arguments given.\n\t>bid <auction_id> <value>\n");
-        return;
-    }
-
-    if (!strcmp(userID, "")) {
-        printf("No user is logged in.\n");
-        return;
-    }
-
-    char * auction_id = arg_vals[1];
-    char * value = arg_vals[2];
-
-    char buffer[128];
-    memset(buffer, 0, sizeof buffer);
-
-    sprintf(buffer, "BID %s %s %s %s\n", userID, userPasswd, auction_id, value);
-
-    setup_TCP();
-    tcp_connect();
-
-    printf("%s", buffer);
-    tcp_send(buffer, strlen(buffer));
-
-    memset(buffer, 0, sizeof buffer);
-
-    tcp_receive(buffer, sizeof buffer);
-
-    TCP_free();
-
-    char aux[4];
-    memset(aux, 0, sizeof aux);
-
-    strncpy(aux, buffer, 3);
-
-    if (strcmp(aux, "RBD")) {
-        printf("Make bid: Invalid response from server.\n");
-        return;
-    }
-
-    if (!strcmp(buffer + 4, "ACC\n")) {
-        printf("Bid accepted.\n");
-    }
-    else if (!strcmp(buffer + 4, "NLG\n")) {
-        printf("User is not logged in.\n");
-    }
-    else if (!strcmp(buffer + 4, "NOK\n")) {
-        printf("Auction %s is not active\n", auction_id);
-    }
-    else if (!strcmp(buffer + 4, "REF\n")) {
-        printf("Auction rejected. There has already been placed a larger bid\n");
-    }
-    else if (!strcmp(buffer + 4, "ILG\n")) {
-        printf("You can't bid your own auction\n");
-    }
-    else {
-        printf("%s", buffer);
-        printf("Invalid response from server.\n");
-    }
-}
-
 /***
  * Lists all auctions that the logged in user (with login credentials in the
  * global variables userId and userPasswd) has created.
@@ -812,6 +501,7 @@ void myBids(int arg_count) {
         return;
     }
 }
+
 
 int aux_formatAuctionInfo(char* in_str, char* out_str) {
     char* ptr = in_str;
@@ -1120,6 +810,317 @@ void showRecord(int argc, char argv[][128]) {
     } else {
         printf("Show record: Invalid response from server.\n");
         return;
+    }
+}
+
+void openAuction(int arg_count, char arg_values[][128]) {
+    char buffer[256];
+    char * name = arg_values[1];
+    char * fname = arg_values[2];
+    char * start_value = arg_values[3];
+    char * time_active = arg_values[4];
+    int fsize;
+
+    memset(buffer, 0, sizeof buffer);
+
+    if (arg_count != 5) {
+        printf("Open auction: Wrong arguments given.\n\t>open <asset> <asset_fname> <start_value> <time_active>\n");
+        return;
+    }
+
+    if (!strcmp(userID, "")) {
+        printf("No user is logged in.\n");
+        return;
+    }
+
+    fsize = checkAssetFile(fname);
+
+    if (fsize <= 0) {
+        printf("Asset file does not exist or is empty.\n");
+        return;
+    }
+
+    setup_TCP();
+    tcp_connect();
+
+    //Sends the beginning of the TCP message
+    sprintf(buffer, "OPA %s %s %s %s %s %s %d ", userID, userPasswd , name, start_value , time_active, fname, fsize);
+    tcp_send(buffer, strlen(buffer));
+    
+    //Sends the file
+    if (sendFile(fname, fsize)) {
+        printf("Open auction: failed to send file.\n");
+        return;
+    }
+
+    tcp_send("\n", 1);
+    
+
+    memset(buffer, 0, sizeof buffer);
+
+    tcp_receive(buffer, sizeof buffer);
+
+    printf("%s", buffer);
+    char *token = strtok(buffer, " ");
+
+    if (strcmp(token, "ROA")) {
+        printf("Open auction: Invalid response from server.\n");
+        TCP_free();
+        return;
+    }
+
+    token = strtok(NULL, " ");
+
+    if (!strcmp(token, "NOK\n")) {
+        printf("Could not open auction.\n");
+    }
+    else if (!strcmp(token, "NLG\n")) {
+        printf("No user is logged in.\n");
+    }
+    else if (!strcmp(token, "OK")) {
+        token = strtok(NULL, " ");
+        printf("Auction %s opened with ID %s.\n", name, token);
+    }
+    else {
+        printf("Open auction: Invalid response from server.\n");
+    }
+
+    TCP_free();
+
+    return;
+}
+
+void closeAuction(int arg_count, char arg_values[][128]) {
+    if (arg_count != 2) {
+        printf("Close auction: Wrong arguments given.\n\t>close <auction_id>\n");
+        return;
+    }
+
+    if (!strcmp(userID, "")) {
+        printf("No user is logged in.\n");
+        return;
+    }
+
+    char * auction_id = arg_values[1];
+
+    char buffer[128];
+    memset(buffer, 0, sizeof buffer);
+
+    sprintf(buffer, "CLS %s %s %s\n", userID, userPasswd, auction_id);
+
+    setup_TCP();
+    tcp_connect();
+
+    tcp_send(buffer, strlen(buffer));
+
+    memset(buffer, 0, sizeof buffer);
+
+    tcp_receive(buffer, sizeof buffer);
+
+    TCP_free();
+
+    printf("%s", buffer);
+
+    char aux[4];
+    memset(aux, 0, sizeof aux);
+
+    strncpy(aux, buffer, 3);
+
+    if (strcmp(aux, "RCL")) {
+        printf("Close auction: Invalid response from server.\n");
+        return;
+    }
+
+    printf("%s", buffer + 4);
+
+    if (!strcmp(buffer + 4, "OK\n")) {
+        printf("Auction successfully closed.\n");
+        return;
+    }
+    else if (!strcmp(buffer + 4, "NLG\n")) {
+        printf("User is not logged in.\n");
+    }
+    else if (!strcmp(buffer + 4, "EAU\n")) {
+        printf("Auction does not exist.\n");
+    }
+    else if (!strcmp(buffer + 4, "EOW\n")) {
+        printf("Auction not owned by user.\n");
+    }
+    else if (!strcmp(buffer + 4, "END\n")) {
+        printf("Auction already closed.\n");
+    } else {
+        printf("Close auction: Invalid response from server.\n");
+    }
+}
+
+void showAsset(int arg_count, char arg_values[][128]) {
+    char buffer[128], *ptr;
+    int status, char_count;
+
+    if (arg_count != 2) {
+        printf("Show asset: Wrong arguments given.\n\t>show_asset <asset_id>\n");
+        return;
+    }
+
+    char * asset_id = arg_values[1];
+
+    memset(buffer, 0, sizeof buffer);
+
+    sprintf(buffer, "SAS %s\n", asset_id);
+
+    setup_TCP();
+    tcp_connect();
+
+    tcp_send(buffer, strlen(buffer));
+
+    memset(buffer, 0, 128);
+
+    // Check if the response type is RSA
+    status = tcp_receive(buffer, 4);
+    if (status != 4 || strcmp(buffer, "RSA ")) {
+        printf("Show asset: Invalid response from server.\n");
+        return;
+    }
+    memset(buffer, 0, sizeof buffer);
+    
+    // Get the status code
+    status = tcp_receive(buffer, 3);
+    if(status != 3) {
+        printf("Show asset: Invalid response from server.\n");
+        TCP_free();
+        return;
+    }
+
+    if (!strcmp(buffer, "OK ")) {
+        char fname[64];
+        char fsize[16];
+
+        // Get the name of the file
+        memset(buffer, 0, 128);
+        ptr = buffer;
+        char_count = 0;
+        while((status = tcp_receive(ptr, 1)) > 0) {
+            if (*ptr == ' ') { *ptr = '\0'; break; }
+            if (!isalpha(*ptr) && *ptr != '-' && *ptr != '_'
+                    && *ptr != '.') { status = -1; break; }
+
+            char_count++;
+            if (char_count == 25) { status = -1; break; }
+            ptr++;
+        }
+        if (status == -1)  {
+            printf("Show asset: Invalid response from server.\n");
+            TCP_free();
+            return;
+        }
+        strcpy(fname, buffer);
+
+        // Get the size of the file
+        memset(buffer, 0, 128);
+        ptr = buffer;
+        char_count = 0;
+        while((status = tcp_receive(ptr, 1)) > 0) {
+            if (*ptr == ' ') { *ptr = '\0'; break; }
+            if (!isdigit(*ptr)) { status = -1; break; }
+
+            char_count++;
+            if (char_count == 9) { status = -1; break; }
+            ptr++;
+        }
+        if (status == -1)  {
+            printf("Show asset: Invalid response from server.\n");
+            TCP_free();
+            return;
+        }
+        strcpy(fsize, buffer);
+
+        receiveFile(fname, atoi(fsize));
+
+        memset(buffer, 0, sizeof buffer);
+        tcp_receive(buffer, 1);
+        if (strcmp(buffer, "\n")) {
+            printf("Invalid response from server\n");
+            TCP_free();
+            return;
+        }
+
+        TCP_free();
+
+        printf("Asset downloaded: %s (%s bytes)\n", fname, fsize);
+        return;
+    } else if (!strcmp(buffer, "NOK")) {
+        printf("Show asset: There was a problem receiving the file.\n");
+        TCP_free();
+        return;
+    }
+
+
+    TCP_free();
+
+    printf("Show asset: Invalid response from server.\n");
+    return;
+}
+
+
+void makeBid(int arg_count, char arg_vals[][128]) {
+    if (arg_count != 3) {
+        printf("Make bid: Wrong arguments given.\n\t>bid <auction_id> <value>\n");
+        return;
+    }
+
+    if (!strcmp(userID, "")) {
+        printf("No user is logged in.\n");
+        return;
+    }
+
+    char * auction_id = arg_vals[1];
+    char * value = arg_vals[2];
+
+    char buffer[128];
+    memset(buffer, 0, sizeof buffer);
+
+    sprintf(buffer, "BID %s %s %s %s\n", userID, userPasswd, auction_id, value);
+
+    setup_TCP();
+    tcp_connect();
+
+    printf("%s", buffer);
+    tcp_send(buffer, strlen(buffer));
+
+    memset(buffer, 0, sizeof buffer);
+
+    tcp_receive(buffer, sizeof buffer);
+
+    TCP_free();
+
+    char aux[4];
+    memset(aux, 0, sizeof aux);
+
+    strncpy(aux, buffer, 3);
+
+    if (strcmp(aux, "RBD")) {
+        printf("Make bid: Invalid response from server.\n");
+        return;
+    }
+
+    if (!strcmp(buffer + 4, "ACC\n")) {
+        printf("Bid accepted.\n");
+    }
+    else if (!strcmp(buffer + 4, "NLG\n")) {
+        printf("User is not logged in.\n");
+    }
+    else if (!strcmp(buffer + 4, "NOK\n")) {
+        printf("Auction %s is not active\n", auction_id);
+    }
+    else if (!strcmp(buffer + 4, "REF\n")) {
+        printf("Auction rejected. There has already been placed a larger bid\n");
+    }
+    else if (!strcmp(buffer + 4, "ILG\n")) {
+        printf("You can't bid your own auction\n");
+    }
+    else {
+        printf("%s", buffer);
+        printf("Invalid response from server.\n");
     }
 }
 
