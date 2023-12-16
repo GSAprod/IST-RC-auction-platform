@@ -600,6 +600,8 @@ void showAsset(int arg_count, char arg_values[][128]) {
         }
 
         TCP_free();
+
+        printf("Asset downloaded: %s (%s bytes)\n", fname, fsize);
         return;
     } else if (!strcmp(buffer, "NOK")) {
         printf("Show asset: There was a problem receiving the file.\n");
@@ -976,7 +978,7 @@ int aux_formatAuctionBid(char* in_str, char* out_str) {
     if (i == 0) return -1;
     bytesRead += i;
 
-    sprintf(out_str, "%s      %6s  %19s  %5s\n", bidderID, bid_value, bid_date, bid_seconds);
+    sprintf(out_str, "%s      %6s  %19s   %5s\n", bidderID, bid_value, bid_date, bid_seconds);
     return bytesRead;
 }
 
@@ -1042,7 +1044,7 @@ void handleAuctions(char *auctions) {
 
     shift++;
     if (auctions[shift] == 'B') {
-        printf("List of bids:\nBIDDER ID    VALUE  DATE/TIME            SEC ELAPSED\n");
+        printf("List of bids:\nBIDDER ID    VALUE  DATE/TIME            SECOND\n");
         
         while(auctions[shift] == 'B' && auctions[shift + 1] == ' ') {
             status = aux_formatAuctionBid(auctions + shift + 2, buffer);

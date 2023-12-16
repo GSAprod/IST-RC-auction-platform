@@ -412,13 +412,13 @@ int GetHighestBid(char * AID) {
 	if (get_mode_verbose()) printf("Number of entries: %d\n", n_entries);
 
 	for (int i = n_entries -1; i >= 0; i--) {
-		name_len=strlen(filelist[entries]->d_name);
+		name_len=strlen(filelist[i]->d_name);
 		if (name_len > 2) {
-			sscanf(filelist[entries]->d_name, "%ld.%*s", &value);
+			sscanf(filelist[i]->d_name, "%ld.%*s", &value);
 			break;
 		}
 
-		printf("%s\n", filelist[entries]->d_name);
+		printf("%s\n", filelist[i]->d_name);
 	}	
 
 	for (int i = 0; i < entries; i++) {
@@ -515,7 +515,7 @@ int Bid(char * AID, char * UID, char * value) {
 	time(&now);
 
 	//Write to file info about the bid
-	sprintf(bid_info, "%s %06d %s %ld", UID, numeric_value, datetime, now - fulltime);
+	sprintf(bid_info, "%s %d %s %ld", UID, numeric_value, datetime, now - fulltime);
 
 
 	//Create bid file
