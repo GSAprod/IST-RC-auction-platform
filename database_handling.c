@@ -1035,7 +1035,7 @@ int GetAuctionsListByUser(char * UID, struct AUCTIONLIST ** auction_list) {
 	for (i = 0; i < n_entries; i++) {
 		len = strlen(filelist[i]->d_name);
 		if (len > 2)
-			free(filelist[n_entries]);
+			free(filelist[i]);
 	}
 	free(filelist);
 
@@ -1085,7 +1085,7 @@ int GetAuctionsListByUserBidded(char * UID, struct AUCTIONLIST ** auction_list) 
 	for (i = 0; i < n_entries; i++) {
 		len = strlen(filelist[i]->d_name);
 		if (len > 2)
-			free(filelist[n_entries]);
+			free(filelist[i]);
 	}
 	
 	free(filelist);
