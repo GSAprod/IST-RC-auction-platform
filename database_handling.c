@@ -1033,10 +1033,11 @@ int GetAuctionsListByUser(char * UID, struct AUCTIONLIST ** auction_list) {
 		memset(pathname, 0, sizeof(pathname));
 	}
 	for (i = 0; i < n_entries; i++) {
-		free(filelist[n_entries]);
+		len = strlen(filelist[i]->d_name);
+		if (len > 2)
+			free(filelist[n_entries]);
 	}
 	free(filelist);
-
 
 	return n_auctions;
 }
