@@ -114,7 +114,6 @@ int server_setup_UDP(char* port) {
  * Sets up the TCP socket connections by setting the global descriptor tcp_fd, 
  * and the addrinfo struct tcp_info.
  * 
- * @param port The port the server is using for receiving messages
  * @return 0 if the setup is successful, -1 otherwise
 */
 int setup_TCP() {

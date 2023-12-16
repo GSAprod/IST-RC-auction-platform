@@ -49,13 +49,21 @@ int CreateUser(char * UID, char * password);
 int Login(char * UID, char * password);
 
 /***
- * Function that closes an auction. Doenn't verify if user is logged in
- * @param AID: Auction ID
+ * Function that checks if a user is logged in
  * @param UID: User ID
  * 
- * @returns 0 if no error occurred, -1 if auction does not exist, -2 if user is not the auction owner, -3 if auction has ended, -4 if an error occurred
+ * @returns 1 if user is logged in, 0 if user is not logged in, -1 if not registered, -2 if incorrect password
 */
-int CloseAuction(char * AID, char * UID);
+int CheckUserLogged(char * UID, char * password);
+
+/***
+ * Function that checks if user password is correct
+ * @param UID: User ID
+ * @param password: User password
+ * 
+ * @returns 1 if password is correct, 0 if password is incorrect, -1 if an error occurred
+ */
+int CheckUserPassword(char * UID, char * password);
 
 /***
  * Function that logs out a user
@@ -91,6 +99,15 @@ int Unregister(char * UID);
 int CreateAuction(char * UID, char*name, char * asset_fname, char * start_value, char * time_active, char * start_datetime, time_t start_fulltime, char * file_size, int socket_fd);
 
 /***
+ * Function that closes an auction. Doenn't verify if user is logged in
+ * @param AID: Auction ID
+ * @param UID: User ID
+ * 
+ * @returns 0 if no error occurred, -1 if auction does not exist, -2 if user is not the auction owner, -3 if auction has ended, -4 if an error occurred
+*/
+int CloseAuction(char * AID, char * UID);
+
+/***
  * Returns the highest value of a bid
  * 
  * @param AID The ID of the auction to get the highest bid
@@ -118,6 +135,13 @@ int Bid(char * AID, char * UID, char * value);
 int ShowAsset(char * AID, int socket_fd);
 
 /***
+ * Function that converts a time_t to a string
+ * @param time: time_t to be converted
+ * @param time_string: array where the string will be stored
+*/
+void timeToString(time_t time, char * time_string);
+
+/***
  * Function that loads a bid from a file to a BIDLIST struct
  * @param pathname: path to bid file
  * @param bid: BIDLIST struct where the bid will be stored
@@ -125,14 +149,6 @@ int ShowAsset(char * AID, int socket_fd);
  * @returns 0 if no error occurred, -1 if an error occurred
 */
 int LoadBid(char * pathname, struct BIDLIST * bid);
-
-/***
- * Function that checks if a user is logged in
- * @param UID: User ID
- * 
- * @returns 1 if user is logged in, 0 if user is not logged in, -1 if not registered, -2 if incorrect password
-*/
-int CheckUserLogged(char * UID, char * password);
 
 /***
  * Function that searches for the 50 highest bids on an auction
@@ -185,21 +201,5 @@ int GetAuctionsListByUser(char * UID, struct AUCTIONLIST ** auction_list);
  * @returns number of auctions found
 */
 int GetAuctionsListByUserBidded(char * UID, struct AUCTIONLIST ** auction_list);
-
-/***
- * Function that checks if user password is correct
- * @param UID: User ID
- * @param password: User password
- * 
- * @returns 1 if password is correct, 0 if password is incorrect, -1 if an error occurred
- */
-int CheckUserPassword(char * UID, char * password);
-
-/***
- * Function that converts a time_t to a string
- * @param time: time_t to be converted
- * @param time_string: array where the string will be stored
-*/
-void timeToString(time_t time, char * time_string);
 
 #endif

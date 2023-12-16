@@ -147,7 +147,7 @@ int server_tcp_accept();
 void server_tcp_close(int socket_fd);
 
 /***
- * Sends a message using the TCp connection protocol, with the parameters
+ * Sends a message using the TCP connection protocol, with the parameters
  * established in the variables udp_fd and udp_info.
  * 
  * @param message The message to be sent

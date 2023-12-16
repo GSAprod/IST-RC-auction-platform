@@ -150,6 +150,77 @@ int Login(char * UID, char * password) {
 	}
 }
 
+
+int CheckUserLogged(char * UID, char * password) {
+	char fileName[256];
+	if (get_mode_verbose()) printf("Checking if user %s is logged in\n", UID);
+
+	memset(fileName, 0, sizeof(fileName));
+	
+	sprintf(fileName, "USERS/%s/%s_login.txt", UID, UID);
+	if (!checkAssetFile(fileName)) {
+		if (get_mode_verbose()) printf("User %s is not logged in\n", UID);
+		return 0;
+	}
+
+	memset(fileName, 0, sizeof(fileName));
+
+	sprintf(fileName, "USERS/%s/%s_pass.txt", UID, UID);
+	if (!checkAssetFile(fileName)) {
+		if (get_mode_verbose()) printf("User %s is not registered\n", UID);
+		return -1;
+	}
+
+	int ret = CheckUserPassword(UID, password);
+
+	switch (ret) {
+		case 0:
+			if (get_mode_verbose()) printf("Wrong password\n");
+			return -2;
+		case 1:
+			if (get_mode_verbose()) printf("Correct password\n");
+			return 1;
+		default:
+			if (get_mode_verbose()) printf("Error checking password\n");
+			return -2;
+	}
+}
+
+int CheckUserPassword(char * UID, char * password) {
+	char fileName[256];
+
+	sprintf(fileName, "USERS/%s/%s_pass.txt", UID, UID);
+	if (checkAssetFile(fileName) <= 0) {
+		if (get_mode_verbose()) printf("User %s has no password defined\n", UID);
+		return -1;
+	}
+	
+	if (get_mode_verbose()) printf("User %s has password defined\n", UID);
+
+	char password_db[8];
+	FILE * file = fopen(fileName, "r");
+	if (file == NULL) {
+		if (get_mode_verbose()) printf("Error opening file\n");
+		return -1;
+	}
+
+	if (fread(password_db, 1, strlen(password), file) <= 0) {
+		if (get_mode_verbose()) printf("Error reading from pass file\n");
+		return -1;
+	}
+
+	fclose(file);
+
+	if (get_mode_verbose()) printf("\n%s : %s \n", password_db, password);
+
+	if (strncmp(password_db, password, 8)) {
+		if (get_mode_verbose()) printf("Wrong password\n");
+		return 0;
+	}
+
+	return 1;
+}
+
 int Logout(char * UID) {
 	char fileName[256];
 
@@ -621,41 +692,6 @@ int ShowAsset(char * AID, int socket_fd) {
 	return 0;
 }
 
-int CheckUserLogged(char * UID, char * password) {
-	char fileName[256];
-	if (get_mode_verbose()) printf("Checking if user %s is logged in\n", UID);
-
-	memset(fileName, 0, sizeof(fileName));
-	
-	sprintf(fileName, "USERS/%s/%s_login.txt", UID, UID);
-	if (!checkAssetFile(fileName)) {
-		if (get_mode_verbose()) printf("User %s is not logged in\n", UID);
-		return 0;
-	}
-
-	memset(fileName, 0, sizeof(fileName));
-
-	sprintf(fileName, "USERS/%s/%s_pass.txt", UID, UID);
-	if (!checkAssetFile(fileName)) {
-		if (get_mode_verbose()) printf("User %s is not registered\n", UID);
-		return -1;
-	}
-
-	int ret = CheckUserPassword(UID, password);
-
-	switch (ret) {
-		case 0:
-			if (get_mode_verbose()) printf("Wrong password\n");
-			return -2;
-		case 1:
-			if (get_mode_verbose()) printf("Correct password\n");
-			return 1;
-		default:
-			if (get_mode_verbose()) printf("Error checking password\n");
-			return -2;
-	}
-}
-
 //Function to convert from time_t to string
 void timeToString(time_t time, char * time_string) {
 	struct tm * timeinfo;
@@ -1091,39 +1127,4 @@ int GetAuctionsListByUserBidded(char * UID, struct AUCTIONLIST ** auction_list) 
 	
 	free(filelist);
 	return n_auctions;
-}
-
-int CheckUserPassword(char * UID, char * password) {
-	char fileName[256];
-
-	sprintf(fileName, "USERS/%s/%s_pass.txt", UID, UID);
-	if (checkAssetFile(fileName) <= 0) {
-		if (get_mode_verbose()) printf("User %s has no password defined\n", UID);
-		return -1;
-	}
-	
-	if (get_mode_verbose()) printf("User %s has password defined\n", UID);
-
-	char password_db[8];
-	FILE * file = fopen(fileName, "r");
-	if (file == NULL) {
-		if (get_mode_verbose()) printf("Error opening file\n");
-		return -1;
-	}
-
-	if (fread(password_db, 1, strlen(password), file) <= 0) {
-		if (get_mode_verbose()) printf("Error reading from pass file\n");
-		return -1;
-	}
-
-	fclose(file);
-
-	if (get_mode_verbose()) printf("\n%s : %s \n", password_db, password);
-
-	if (strncmp(password_db, password, 8)) {
-		if (get_mode_verbose()) printf("Wrong password\n");
-		return 0;
-	}
-
-	return 1;
 }
