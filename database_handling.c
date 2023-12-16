@@ -411,7 +411,7 @@ int GetHighestBid(char * AID) {
 
 	if (get_mode_verbose()) printf("Number of entries: %d\n", n_entries);
 
-	while(--entries) {
+	for (int i = n_entries -1; i >= 0; i--) {
 		name_len=strlen(filelist[entries]->d_name);
 		if (name_len > 2) {
 			sscanf(filelist[entries]->d_name, "%ld.%*s", &value);
