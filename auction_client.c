@@ -814,8 +814,7 @@ void myBids(int arg_count) {
 int aux_formatAuctionInfo(char* in_str, char* out_str) {
     char* ptr = in_str;
     char buffer[256];
-
-    memset(out_str, 0, 90);
+    int bytesRead = 7;
 
     // Read host UID
     strcpy(out_str, "Auction record:\n================\nStarted by    | ");
@@ -844,6 +843,7 @@ int aux_formatAuctionInfo(char* in_str, char* out_str) {
     if (i == 0) return -1;
     strcat(out_str, buffer);
     memset(buffer, 0, sizeof buffer);
+    bytesRead += i + 1;
     
     // Read name of asset
     strcat(out_str, "\nName of asset | ");
@@ -858,6 +858,7 @@ int aux_formatAuctionInfo(char* in_str, char* out_str) {
     if (i == 0) return -1;
     strcat(out_str, buffer);
     memset(buffer, 0, sizeof buffer);
+    bytesRead += i + 1;
 
     // Read start value
     strcat(out_str, "\nStart value   | ");
@@ -872,6 +873,7 @@ int aux_formatAuctionInfo(char* in_str, char* out_str) {
     if (i == 0) return -1;
     strcat(out_str, buffer);
     memset(buffer, 0, sizeof buffer);
+    bytesRead += i + 1;
 
     // Read start date time
     strcat(out_str, "\nStarted at    | ");
@@ -893,6 +895,7 @@ int aux_formatAuctionInfo(char* in_str, char* out_str) {
     if (i == 0) return -1;
     strcat(out_str, buffer);
     memset(buffer, 0, sizeof buffer);
+    bytesRead += i + 1;
 
     // Read time active
     strcat(out_str, "\nDuration      | ");
@@ -908,85 +911,159 @@ int aux_formatAuctionInfo(char* in_str, char* out_str) {
     strcat(out_str, buffer);
     memset(buffer, 0, sizeof buffer);
     strcat(out_str, "\n");
+    bytesRead += i;
 
-    return 0;
+    return bytesRead;
 }
-/*
+
 int aux_formatAuctionBid(char* in_str, char* out_str) {
     char* ptr = in_str;
-    char buffer[256];
+    char bidderID[7], bid_value[7], bid_date[20], bid_seconds[6];
+    int bytesRead = 7;
+
+    // Read bidder UID
+    int i = 0;
+    while(1) {
+        if (*ptr == ' ') { bidderID[i] = '\0'; ptr++; break; }
+        if (!isdigit(*ptr) || i >= 6) return -1;
+
+        bidderID[i++] = *ptr;
+        ptr++;
+    }
+    if (i != 6) return -1;
+
+    // Read bid value
+    i = 0;
+    while(1) {
+        if (*ptr == ' ') { bid_value[i] = '\0'; ptr++; break; }
+        if (!isdigit(*ptr) || i >= 6) return -1;
+
+        bid_value[i++] = *ptr;
+        ptr++;
+    }
+    if (i == 0) return -1;
+    bytesRead += i + 1;
+
+    // Read bid date and time
+    i = 0;
+    int time_separator = 0;
+    while(1) {
+        if (*ptr == ' ') { 
+            if (time_separator == 1) {
+                bid_date[i] = '\0'; 
+                ptr++; 
+                break;
+            } else time_separator = 1;
+        }
+        if (*ptr == '\n' || *ptr == '\0') return -1;
+
+        bid_date[i++] = *ptr;
+        ptr++;
+    }
+    if (i == 0) return -1;
+    bytesRead += i + 1;
+
+    // Read the number of seconds elapsed since the beggining of the auction
+    // until the bid was placed
+    i = 0;
+    while(1) {
+        if (*ptr == ' ' || *ptr == '\n') { bid_seconds[i] = '\0'; break; }
+        if (!isdigit(*ptr) || i >= 5) return -1;
+
+        bid_seconds[i++] = *ptr;
+        ptr++;
+    }
+    if (i == 0) return -1;
+    bytesRead += i;
+
+    sprintf(out_str, "%s      %6s  %19s  %5s\n", bidderID, bid_value, bid_date, bid_seconds);
+    return bytesRead;
 }
-*/
+
+int aux_formatAuctionEnd(char* in_str, char* out_str) {
+    char* ptr = in_str;
+    char end_date[20], end_seconds[6];
+    int bytesRead = 0;
+
+    // Read bid date and time
+    int i = 0;
+    int time_separator = 0;
+    while(1) {
+        if (*ptr == ' ') { 
+            if (time_separator == 1) {
+                end_date[i] = '\0'; 
+                ptr++; 
+                break;
+            } else time_separator = 1;
+        }
+        if (*ptr == '\n' || *ptr == '\0') return -1;
+
+        end_date[i++] = *ptr;
+        ptr++;
+    }
+    if (i == 0) return -1;
+    bytesRead += i + 1;
+
+    // Read the number of seconds elapsed between the beggining and end 
+    // of the auction
+    i = 0;
+    while(1) {
+        if (*ptr == '\n') { end_seconds[i] = '\0'; break; }
+        if (!isdigit(*ptr) || i >= 5) return -1;
+
+        end_seconds[i++] = *ptr;
+        ptr++;
+    }
+    if (i == 0) return -1;
+    bytesRead += i;
+
+    sprintf(out_str, "\nAuction ended at %s (lasted %s seconds).\n", end_date, end_seconds);
+    return bytesRead;
+}
 
 void handleAuctions(char *auctions) {
-    char c = 'a';
-    int i = 0, j = 0;
+    int status = 0, shift = 0;
     char buffer[1024];
 
     memset(buffer, 0, sizeof buffer);
 
     // Read auction
-    printf("Auction:\n");
-    while (1) {
-        c = auctions[i];
-        if (c == 'B' || c == '\n' || c == 'E' || c == '\0') {
-            break;
-        }
-        buffer[j] = c;
-        i++;
-        j++;
-    }
-    printf("%s\n", buffer);
+    status = aux_formatAuctionInfo(auctions, buffer);
+    if (status == -1) return;
+
+    write(1, buffer, strlen(buffer));
+    printf("\n");
+    shift += status;
 
     memset(buffer, 0, sizeof buffer);
 
-    if (c == 'B') {
-        // Read bids
-        printf("Bids:\n");
-        int repeat = 1;
-        while (repeat) {
-            i+= 2;
-            j= 0;
-            repeat = 0;
+    if (auctions[shift] != ' ')
+        return;
+
+    shift++;
+    if (auctions[shift] == 'B') {
+        printf("List of bids:\nBIDDER ID    VALUE  DATE/TIME            SEC ELAPSED\n");
+        
+        while(auctions[shift] == 'B' && auctions[shift + 1] == ' ') {
+            status = aux_formatAuctionBid(auctions + shift + 2, buffer);
+            if (status == -1)
+                return;
+
+            write(1, buffer, strlen(buffer));
             memset(buffer, 0, sizeof buffer);
-            while (1) {
-                c = auctions[i];
-                if (c == 'B') {
-                    repeat = 1;
-                    printf("-> %s\n", buffer);
-                    break;
-                }
-                if (c == 'E' || c == '\0') {
-                    printf("-> %s", buffer);
-                    break;
-                }
-                buffer[j] = c;
-                i++;
-                j++;
-            }
+            shift += status + 2;
+
+            if (auctions[shift] != ' ') return;
+            shift += 1;
         }
-        printf("\n");
     }
 
-    if (c == 'E') {
-        i += 2;
-        j = 0;
+    if (auctions[shift] == 'E' && auctions[shift + 1] == ' ') {
+        status = aux_formatAuctionEnd(auctions + shift + 2, buffer);
+        if (status == -1)
+            return;
 
-        printf("End:\n");
-
-        memset(buffer, 0, sizeof buffer);
-        while (1) {
-            c = auctions[i];
-            if (c == '\0' || c == '\n') {
-                i++;
-                break;
-            }
-            buffer[j] = c;
-            i++;
-            j++;
-        }
-        printf("%s", buffer);
-        printf("\n");
+        write(1, buffer, strlen(buffer));
     }
 
     return;
