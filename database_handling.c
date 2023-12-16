@@ -512,8 +512,11 @@ int Bid(char * AID, char * UID, char * value) {
 
 	char bid_info[128];
 
+	time(&now);
+
 	//Write to file info about the bid
-	sprintf(bid_info, "%s %06d %s %ld", UID, numeric_value, datetime, fulltime);
+	sprintf(bid_info, "%s %06d %s %ld", UID, numeric_value, datetime, now - fulltime);
+
 
 	//Create bid file
 	memset(fileName, 0, sizeof(fileName));
@@ -687,7 +690,7 @@ int LoadBid(char * pathname, struct BIDLIST * bid) {
 
 	sscanf(bid_info, "%s %s %19[^\n] %s", bid->UID, bid->value, bid->datetime, fulltime);
 
-	sprintf(bid->fulltime, "%06d", atoi(fulltime));
+	sprintf(bid->fulltime, "%d", atoi(fulltime));
 
 	fclose(file);
 
@@ -887,7 +890,7 @@ int GetAuctionInfo(char * AID, char * message_ptr) {
 
 	if (get_mode_verbose()) printf("UID: %s\nName: %s\nAsset filename: %s\nStart value: %s\nTime active: %d\nStart datetime: %s\n", UID, name, asset_fname, start_value, time_active, start_datetime);
 
-	sprintf(message_ptr, "%s %s %s %s %s %06d", UID, name, asset_fname, start_value, start_datetime, time_active);
+	sprintf(message_ptr, "%s %s %s %s %s %d", UID, name, asset_fname, start_value, start_datetime, time_active);
 	
 
 	// TODO Fix
@@ -941,8 +944,6 @@ int GetAuctionInfo(char * AID, char * message_ptr) {
 	} else {
 		if (get_mode_verbose()) printf("Error checking if auction %s ended\n", AID);
 	}
-
-	*message_ptr = '\n';
 
 	return 0;
 }

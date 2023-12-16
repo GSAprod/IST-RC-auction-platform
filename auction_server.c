@@ -497,6 +497,7 @@ void list_auctions_handling(char * message, struct sockaddr* to_addr, socklen_t 
 void show_record_handling(char * message, struct sockaddr* to_addr, socklen_t to_addr_len) {
     char response[8192];
     char * res_ptr = response;
+    memset(response, 0, sizeof(response));
 
     strtok(message, " ");    // This only gets the "SRC " string
 
@@ -519,6 +520,7 @@ void show_record_handling(char * message, struct sockaddr* to_addr, socklen_t to
         return;
     }
 
+    response[strlen(response)] = '\n';
     if (get_mode_verbose()) printf("response: %s\n", response);
     server_udp_send(response, to_addr, to_addr_len);
 }
