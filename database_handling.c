@@ -304,7 +304,6 @@ int CloseAuction(char * AID, char * UID) {
 
 	char fileName[256];
 
-	//TODO: Make close auction function
 	sprintf(fileName, "AUCTIONS/%s/START_%s.txt", AID, AID);
 	if (checkAssetFile(fileName)) {
 		if (get_mode_verbose()) printf("Auction %s exists\n", AID);
@@ -329,13 +328,13 @@ int CloseAuction(char * AID, char * UID) {
 
 	char db_UID[7];
 
+	char start_fulltime[20];
+	sscanf(auction_info, "%s %*s %*s %*s %*s %*s %*s %s",db_UID, start_fulltime);
+
 	if (strcmp(db_UID, UID)) {
 		if (get_mode_verbose()) printf("User %s is not the auction host\n", UID);
 		return -2; //* -2 = user is not the auction host
 	}
-
-	char start_fulltime[20];
-	sscanf(auction_info, "%s %*s %*s %*s %*s %*s %*s %s",db_UID, start_fulltime);
 
 	memset(fileName, 0, sizeof(fileName));
 
