@@ -392,7 +392,7 @@ void list_myauctions_handling(char* message, struct sockaddr* to_addr, socklen_t
     free(auction_list);
 
     if (get_mode_verbose()) 
-        printf("My auctions: User %s requested created auctions (%s created).\n", userID, num_auctions);
+        printf("My auctions: User %s requested created auctions (%d created).\n", userID, num_auctions);
 
     server_udp_send(response, to_addr, to_addr_len);
 }
@@ -449,7 +449,7 @@ void list_mybids_handling(char* message, struct sockaddr* to_addr, socklen_t to_
     strcpy(ptr, "\n");
 
     if (get_mode_verbose()) 
-        printf("My bids: User %s requested bidded auctions (%s created).\n", userID, num_auctions);
+        printf("My bids: User %s requested bidded auctions (%d created).\n", userID, num_auctions);
 
     server_udp_send(response, to_addr, to_addr_len);
 }
@@ -497,7 +497,7 @@ void list_auctions_handling(char * message, struct sockaddr* to_addr, socklen_t 
     strcpy(ptr, "\n");
 
     if (get_mode_verbose()) 
-        printf("List all: Received request. %s auctions returned.\n", num_auctions);
+        printf("List all: Received request. %d auctions returned.\n", num_auctions);
 
     server_udp_send(response, to_addr, to_addr_len);
 }  
@@ -651,7 +651,7 @@ void open_auction_handling(int socket_fd) {
     server_tcp_send(socket_fd, res, strlen(res));
 
     if (get_mode_verbose()) 
-        printf("Open auction: Assigned auction number %s.\n", AID);
+        printf("Open auction: Assigned auction number %d.\n", AID);
 
     return;
 
@@ -867,7 +867,7 @@ void bid_handling(int socket_fd) {
     }
 
     if (get_mode_verbose()) 
-        printf("Bid: User %s has requested a bid of value %s for auction %s\nauctionID: %s\nauctionValue: %s\n", 
+        printf("Bid: User %s has requested a bid of value %s for auction %s\n", 
                 userID, auctionValue, auctionID);
 
     // Tries to create the bid in the db
