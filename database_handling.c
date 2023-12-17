@@ -739,6 +739,7 @@ int GetBidList(char * AID, struct BIDLIST ** bidlist) {
 int checkIfAuctionEnded(char * AID) {
 
 	char fileName[PATHNAME_SIZE];
+	sprintf(fileName, "AUCTIONS/%s", AID);
 
 	if (!checkAssetFile(fileName)) {
 		if (get_mode_verbose()) printf("Auction %s does not exist\n", AID);
