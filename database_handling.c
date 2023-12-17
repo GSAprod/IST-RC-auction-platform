@@ -594,7 +594,6 @@ int ShowAsset(char * AID, int socket_fd) {
 	// Check if the auction exists
 	sprintf(curPath, "AUCTIONS/%s/ASSET/", AID);
 	if (checkAssetFile(curPath)) {
-		if (get_mode_verbose()) printf("Auction %s exists\n", AID);
 	} else {
 		if (get_mode_verbose()) printf("Auction %s does not exist\n", AID);
 		return -1; //* -1 = auction does not exist
@@ -625,8 +624,6 @@ int ShowAsset(char * AID, int socket_fd) {
 	strcat(curPath, fileName);
 	free(filelist);
 
-	if (get_mode_verbose()) printf("Found file %s\n", curPath);
-
 	// Get the length of the file
 	stat(curPath, &filestat);
 	file_size = filestat.st_size;
@@ -643,7 +640,6 @@ int ShowAsset(char * AID, int socket_fd) {
 	}
 
 	sprintf(buffer, "RSA OK %s %ld ", fileName, file_size);
-	if (get_mode_verbose()) printf("%s\n", buffer);
 	server_tcp_send(socket_fd, buffer, strlen(buffer));
 
 	serverSendFile(fd, file_size, socket_fd);
@@ -667,7 +663,6 @@ void timeToString(time_t time, char * time_string) {
 }
 
 int LoadBid(char * pathname, struct BIDLIST * bid) {
-	if (get_mode_verbose()) printf("Loading bid from file %s\n", pathname);
 	
 	FILE * file = fopen(pathname, "r");
 	if (file == NULL) {
@@ -703,11 +698,8 @@ int GetBidList(char * AID, struct BIDLIST ** bidlist) {
 	char pathname[PATHNAME_SIZE];
 
 	sprintf(dirname, "AUCTIONS/%s/BIDS", AID);
-	if (get_mode_verbose()) printf("Directory name: %s\n", dirname);
 
 	n_entries = scandir(dirname, &filelist, 0, alphasort);
-
-	if (get_mode_verbose()) printf("Number of entries: %d\n", n_entries);
 
 	if (n_entries <= 0) {
 		if (get_mode_verbose()) printf("Error scanning directory\n");
@@ -723,10 +715,8 @@ int GetBidList(char * AID, struct BIDLIST ** bidlist) {
 	int i = 0;
 	while (i < n_entries) {
 		len = strlen(filelist[i]->d_name);
-		if (get_mode_verbose()) printf("File name: %s\n", filelist[i]->d_name);
 		if (len == 10) {
 			sprintf(pathname, "AUCTIONS/%s/BIDS/%s", AID, filelist[i]->d_name);
-			if (get_mode_verbose()) printf("Pathname: %s\n", pathname);
 			if (LoadBid(pathname, &(*bidlist)[n_bids]) == 0) {
 				strcpy((*bidlist)[n_bids].AID, AID);
 				++n_bids;
@@ -747,14 +737,10 @@ int GetBidList(char * AID, struct BIDLIST ** bidlist) {
 }
 
 int checkIfAuctionEnded(char * AID) {
-	if (get_mode_verbose()) printf("Checking if auction %s ended\n", AID);
 
 	char fileName[PATHNAME_SIZE];
-	sprintf(fileName, "AUCTIONS/%s", AID);
 
-	if (checkAssetFile(fileName)) {
-		if (get_mode_verbose()) printf("Auction %s exists\n", AID);
-	} else {
+	if (!checkAssetFile(fileName)) {
 		if (get_mode_verbose()) printf("Auction %s does not exist\n", AID);
 		return -1;
 	}
@@ -766,7 +752,6 @@ int checkIfAuctionEnded(char * AID) {
 		if (get_mode_verbose()) printf("Auction %s ended\n", AID);
 		return 1;
 	} else {
-		if (get_mode_verbose()) printf("Checking file time:\n");
 		
 		memset(fileName, 0, sizeof(fileName));
 		sprintf(fileName, "AUCTIONS/%s/START_%s.txt", AID, AID);
@@ -792,17 +777,12 @@ int checkIfAuctionEnded(char * AID) {
 
 		fclose(file);
 
-		printf("Time active: %d\n", time_active);
-
 		time_t now;
 		time_t end_date = start_date + time_active;
-
-		
 
 		time(&now);
 
 		if (end_date <= now) {
-			if (get_mode_verbose()) printf("Auction %s ended\n", AID);
 			memset(fileName, 0, sizeof(fileName));
 			sprintf(fileName, "AUCTIONS/%s/END_%s.txt", AID, AID);
 			file = fopen(fileName, "w");
@@ -886,8 +866,6 @@ int GetAuctionInfo(char * AID, char * message_ptr) {
 
 	sscanf(auction_info, "%s %s %s %s %d %19[^\n] %ld", UID, name, asset_fname, start_value, &time_active, start_datetime, &fulltime);
 
-	if (get_mode_verbose()) printf("UID: %s\nName: %s\nAsset filename: %s\nStart value: %s\nTime active: %d\nStart datetime: %s\n", UID, name, asset_fname, start_value, time_active, start_datetime);
-
 	sprintf(message_ptr, "%s %s %s %s %s %d", UID, name, asset_fname, start_value, start_datetime, time_active);
 
 	message_ptr = message_ptr + strlen(message_ptr);
@@ -895,7 +873,6 @@ int GetAuctionInfo(char * AID, char * message_ptr) {
 	struct BIDLIST * bidlist = NULL;
 
 	int n_bids = GetBidList(AID, &bidlist);
-	if (get_mode_verbose()) printf("Number of bids: %d\n", n_bids);
 
 	for (int i = 0; i < n_bids; i++) {
 		if (get_mode_verbose()) printf("UID: %s\nValue: %s\nDatetime: %s\nFulltime: %s\n", bidlist[i].UID, bidlist[i].value, bidlist[i].datetime, bidlist[i].fulltime);
@@ -908,7 +885,6 @@ int GetAuctionInfo(char * AID, char * message_ptr) {
 	int checkIfEnded = checkIfAuctionEnded(AID);
 
 	if (checkIfEnded == 1) {
-		if (get_mode_verbose()) printf("Auction %s ended\n", AID);
 		memset(fileName, 0, sizeof(fileName));
 		sprintf(fileName, "AUCTIONS/%s/END_%s.txt", AID, AID);
 		file = fopen(fileName, "r");
@@ -939,6 +915,7 @@ int GetAuctionInfo(char * AID, char * message_ptr) {
 		if (get_mode_verbose()) printf("Auction %s did not end\n", AID);
 	} else {
 		if (get_mode_verbose()) printf("Error checking if auction %s ended\n", AID);
+		return -1;
 	}
 
 	return 0;
@@ -953,7 +930,6 @@ int GetAuctionsList(struct AUCTIONLIST ** auction_list) {
 	sprintf(dirname, "AUCTIONS");
 
 	n_entries = scandir(dirname, &filelist, 0, alphasort);
-	if (get_mode_verbose()) printf("Number of entries: %d\n", n_entries);
 
 	if (n_entries <= 0) {
 		if (get_mode_verbose()) printf("Error scanning directory\n");
@@ -968,10 +944,8 @@ int GetAuctionsList(struct AUCTIONLIST ** auction_list) {
 
 	for (i = 0; i < n_entries; i++) {
 		len = strlen(filelist[i]->d_name);
-		if (get_mode_verbose()) printf("File name: %s\n", filelist[i]->d_name);
 		if (len == 3) {
 			sprintf(pathname, "AUCTIONS/%s", filelist[i]->d_name);
-			if (get_mode_verbose()) printf("Pathname: %s\n", pathname);
 			if (checkAssetFile(pathname)) {
 				strncpy((*auction_list)[n_auctions].AID, filelist[i]->d_name, 3);
 				(*auction_list)[n_auctions].AID[3] = '\0';
@@ -1014,10 +988,8 @@ int GetAuctionsListByUser(char * UID, struct AUCTIONLIST ** auction_list) {
 
 	for (i = 0; i < n_entries; i++) {
 		len = strlen(filelist[i]->d_name);
-		if (get_mode_verbose()) printf("File name: %s\n", filelist[i]->d_name);
 		if (len == 7) {
 			sprintf(pathname, "USERS/%s/HOSTED/%s", UID, filelist[i]->d_name);
-			if (get_mode_verbose()) printf("Pathname: %s\n", pathname);
 			if (checkAssetFile(pathname)) {
 				char AID [AID_SIZE];
 				memset(AID, 0, sizeof(AID));
@@ -1063,10 +1035,8 @@ int GetAuctionsListByUserBidded(char * UID, struct AUCTIONLIST ** auction_list) 
 
 	for (i = 0; i < n_entries; i++) {
 		len = strlen(filelist[i]->d_name);
-		if (get_mode_verbose()) printf("File name: %s\n", filelist[i]->d_name);
 		if (len == 7) {
 			sprintf(pathname, "USERS/%s/BIDDED/%s", UID, filelist[i]->d_name);
-			if (get_mode_verbose()) printf("Pathname: %s\n", pathname);
 			if (checkAssetFile(pathname)) {
 				char AID[AID_SIZE];
 				memset(AID, 0, sizeof(AID));

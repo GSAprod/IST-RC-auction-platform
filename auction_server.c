@@ -22,7 +22,7 @@ char port[PORT_SIZE];
 
 void sig_handler(int signo) {
     if (signo == SIGINT) {
-        printf("SIGINT received. Shutting down server.\n");
+        printf("\nSIGINT received. Shutting down server.\n");
         UDP_free();
         TCP_free();
         exit(EXIT_SUCCESS);
