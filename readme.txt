@@ -65,4 +65,6 @@ O ficheiro "file.handling.c" contém funções úteis para a verificação da ex
 de ficheiros na base de dados, e também para o envio e receção do conteúdo dos
 ficheiros dos ativos, associados aos respetivos leilões.
 
+O ficheiro "utils.c" contém funções de utilidade, como a ativação do modo verboso.
+
 -------------------------------------------------

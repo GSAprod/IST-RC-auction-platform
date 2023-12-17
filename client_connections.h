@@ -11,6 +11,8 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <errno.h>
+#include <time.h>
+#include "utils.h"
 
 #define DEFAULT_SERVER_IP "localhost"
 #define DEFAULT_SERVER_PORT "58057"   // 58000 + Group #57

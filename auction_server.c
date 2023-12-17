@@ -1009,6 +1009,7 @@ int main(int argc, char *argv[]) {
     int tcp_fd, udp_fd, out_fds;
     fd_set inputs, current_fds;
     struct timeval timeout;
+    struct sigaction act;
 
     // Define verbose mode and port number according to the arguments used
     // to run this program
@@ -1017,6 +1018,14 @@ int main(int argc, char *argv[]) {
 
     //Handle sigint
     signal(SIGINT, sig_handler);
+
+    //Handle sigpipe
+    memset(&act, 0, sizeof act);
+    act.sa_handler=SIG_IGN;
+    if(sigaction(SIGPIPE, &act, NULL) == -1) {
+        printf("Failed to set SISPIPE behaviour.\n");
+        return -1;
+    }
 
     // Set up both UDP and TCP connections
     udp_fd = server_setup_UDP(port);

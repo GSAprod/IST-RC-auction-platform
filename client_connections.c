@@ -47,6 +47,7 @@ void setServerParameters(int argc, char *argv[]) {
 int setup_UDP() {
     int errcode;
     struct addrinfo udp_hints;
+    struct timeval timeout;
 
     // UDP socket
     udp_fd = socket(AF_INET, SOCK_DGRAM, 0); 
@@ -58,6 +59,18 @@ int setup_UDP() {
     
     errcode = getaddrinfo(server_ip, server_port, &udp_hints, &udp_info);
     if (errcode != 0) return -1;
+
+    // Set a timeout in case the socket is stuck on read/write
+    timeout.tv_sec = TIMEOUT;
+    timeout.tv_usec = 0;
+    if(setsockopt(udp_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout,
+            sizeof timeout) < 0 ||
+            setsockopt(udp_fd, SOL_SOCKET, SO_SNDTIMEO, &timeout,
+            sizeof timeout) < 0) {
+        if (get_mode_verbose())
+            printf("Failed to establish TCP socket timeout.\n");
+        return -1;
+    }
 
     return 0;
 }
@@ -89,6 +102,7 @@ int server_setup_UDP(char* port) {
 int setup_TCP() {
     int errcode;
     struct addrinfo tcp_hints;
+    struct timeval timeout;
 
     // TCP socket
     tcp_fd = socket(AF_INET, SOCK_STREAM, 0); 
@@ -100,6 +114,18 @@ int setup_TCP() {
     
     errcode = getaddrinfo(server_ip, server_port, &tcp_hints, &tcp_info);
     if (errcode != 0) return -1;
+
+    timeout.tv_sec = TIMEOUT;
+    timeout.tv_usec = 0;
+    if(setsockopt(tcp_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout,
+            sizeof timeout) < 0 ||
+            setsockopt(tcp_fd, SOL_SOCKET, SO_SNDTIMEO, &timeout,
+            sizeof timeout) < 0) {
+        if (get_mode_verbose())
+            printf("Failed to establish TCP socket timeout.\n");
+        server_tcp_close(tcp_fd);
+        return -1;
+    }
 
     return 0;
 }

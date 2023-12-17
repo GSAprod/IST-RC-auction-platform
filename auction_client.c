@@ -1229,6 +1229,7 @@ int main(int argc, char *argv[]) {
     char prompt[MAX_PROMPT_SIZE];
     char prompt_args[MAX_PROMPT_NUMBER][MEDIUM_BUFFER];
     int prompt_args_count;
+    struct sigaction act;
 
     // Set the parameters of the server according to the program's arguments
     setServerParameters(argc, argv);
@@ -1237,6 +1238,13 @@ int main(int argc, char *argv[]) {
     // Set the signal handler for SIGINT
     if (signal(SIGINT, sig_handler) == SIG_ERR) {
         printf("Error setting signal handler for SIGINT.\n");
+        return -1;
+    }
+
+    memset(&act, 0, sizeof act);
+    act.sa_handler=SIG_IGN;
+    if(sigaction(SIGPIPE, &act, NULL) == -1) {
+        printf("Failed to set SISPIPE behaviour.\n");
         return -1;
     }
 
