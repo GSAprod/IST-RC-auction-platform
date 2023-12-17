@@ -436,7 +436,6 @@ void listMyAuctions(int arg_count) {
         printf("No user is logged in.\n");
         return;
     } else if (!strcmp(aux, "OK ")) {
-        //! This part has not yet been tested!
         // Print a table with all auctions and their respective status
         status = printAuctions(buffer + 7);
         if (status == -1) {
