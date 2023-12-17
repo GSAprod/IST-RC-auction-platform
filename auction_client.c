@@ -8,6 +8,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <signal.h>
 #include <sys/stat.h>
 #include "client_connections.h"
 #include "file_handling.h"
@@ -1213,6 +1214,13 @@ void makeBid(int arg_count, char arg_vals[][128]) {
     }
 }
 
+void sig_handler(int signo) {
+    if (signo == SIGINT) {
+        exitScript();
+    }
+    exitScript();
+}
+
 int main(int argc, char *argv[]) {
     char prompt[MAX_PROMPT_SIZE];
     char prompt_args[MAX_PROMPT_NUMBER][MEDIUM_BUFFER];
@@ -1221,6 +1229,12 @@ int main(int argc, char *argv[]) {
     // Set the parameters of the server according to the program's arguments
     setServerParameters(argc, argv);
     setup_UDP();
+
+    // Set the signal handler for SIGINT
+    if (signal(SIGINT, sig_handler) == SIG_ERR) {
+        printf("Error setting signal handler for SIGINT.\n");
+        return -1;
+    }
 
     memset(userID, 0, sizeof userID);
     memset(userPasswd, 0, sizeof userPasswd);
