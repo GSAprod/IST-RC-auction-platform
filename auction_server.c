@@ -27,9 +27,6 @@ void sig_handler(int signo) {
         TCP_free();
         exit(EXIT_SUCCESS);
     }
-    UDP_free();
-    TCP_free();
-    exit(EXIT_FAILURE);
 }
 
 void set_program_parameters(int argc, char* argv[]) {

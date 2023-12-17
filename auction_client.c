@@ -1216,9 +1216,13 @@ void makeBid(int arg_count, char arg_vals[][128]) {
 
 void sig_handler(int signo) {
     if (signo == SIGINT) {
+        memset(userID, 0, sizeof userID);
+        memset(userPasswd, 0, sizeof userPasswd);
+        printf("\n");
         exitScript();
+        exit(EXIT_SUCCESS);
     }
-    exitScript();
+
 }
 
 int main(int argc, char *argv[]) {
