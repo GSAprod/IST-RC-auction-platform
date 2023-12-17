@@ -12,8 +12,6 @@ int checkAssetFile(char * filename) {
 		return -1;
 	}
 
-	if (get_mode_verbose()) printf("File size: %ld\n", filestat.st_size);
-
 	return filestat.st_size;
 }
 

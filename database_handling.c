@@ -77,17 +77,13 @@ int CreateUser(char * UID, char * password) {
 int Login(char * UID, char * password) {
 	char fileName[PATHNAME_SIZE];
 
-	if (get_mode_verbose()) printf("Logging in user %s\n", UID);
-
 	sprintf(fileName, "USERS/%s", UID);
 	if (checkAssetFile(fileName)) {
-		if (get_mode_verbose()) printf("User %s exists\n", UID);
 
 		memset(fileName, 0, sizeof(fileName));
 		sprintf(fileName, "USERS/%s/%s_pass.txt", UID, UID);
 
 		if (checkAssetFile(fileName) > 0) {
-			if (get_mode_verbose()) printf ("User has password defined\n");
 
 			char password_db[PASSWORD_SIZE];
 			memset(password_db, 0, sizeof(password_db));
@@ -113,7 +109,6 @@ int Login(char * UID, char * password) {
 			// CREATES PASSWORD FILE
 			int ret = CreateUser(UID, password);
 			if (ret == 0) {
-				if (get_mode_verbose()) printf("User %s created\n", UID);
 				return 0;
 			} else {
 				if (get_mode_verbose()) printf("Error creating user %s\n", UID);
@@ -126,10 +121,8 @@ int Login(char * UID, char * password) {
 		sprintf(fileName, "USERS/%s/%s_login.txt", UID, UID);
 
 		if (checkAssetFile(fileName)) {
-			if (get_mode_verbose()) printf("User %s is logged in\n", UID);
 			return 1;
 		} else {
-			if (get_mode_verbose()) printf("User %s is not logged in\n", UID);
 			FILE * file = fopen(fileName, "w");
 			if (file == NULL) {
 				if (get_mode_verbose()) printf("Error opening file\n");
@@ -139,10 +132,8 @@ int Login(char * UID, char * password) {
 		}
 		return 1;
 	} else {
-		if (get_mode_verbose()) printf("User %s does not exist\n", UID);
 		int ret = CreateUser(UID, password);
 		if (ret == 0) {
-			if (get_mode_verbose()) printf("User %s created\n", UID);
 			return 0;
 		} else {
 			if (get_mode_verbose()) printf("Error creating user %s\n", UID);
@@ -154,7 +145,6 @@ int Login(char * UID, char * password) {
 
 int CheckUserLogged(char * UID, char * password) {
 	char fileName[PATHNAME_SIZE];
-	if (get_mode_verbose()) printf("Checking if user %s is logged in\n", UID);
 
 	memset(fileName, 0, sizeof(fileName));
 	
@@ -179,7 +169,6 @@ int CheckUserLogged(char * UID, char * password) {
 			if (get_mode_verbose()) printf("Wrong password\n");
 			return -2;
 		case 1:
-			if (get_mode_verbose()) printf("Correct password\n");
 			return 1;
 		default:
 			if (get_mode_verbose()) printf("Error checking password\n");
@@ -195,8 +184,6 @@ int CheckUserPassword(char * UID, char * password) {
 		if (get_mode_verbose()) printf("User %s has no password defined\n", UID);
 		return -1;
 	}
-	
-	if (get_mode_verbose()) printf("User %s has password defined\n", UID);
 
 	char password_db[PASSWORD_SIZE];
 	memset(password_db, 0, sizeof(password_db));
@@ -213,8 +200,6 @@ int CheckUserPassword(char * UID, char * password) {
 
 	fclose(file);
 
-	if (get_mode_verbose()) printf("\n%s : %s \n", password_db, password);
-
 	if (strncmp(password_db, password, 8)) {
 		if (get_mode_verbose()) printf("Wrong password\n");
 		return 0;
@@ -226,15 +211,11 @@ int CheckUserPassword(char * UID, char * password) {
 int Logout(char * UID) {
 	char fileName[PATHNAME_SIZE];
 
-	if (get_mode_verbose()) printf("Logging out user %s\n", UID);
-
 	sprintf(fileName, "USERS/%s/%s_pass.txt", UID, UID);
 	if (!checkAssetFile(fileName)) {
 		if (get_mode_verbose()) printf("User %s has no password defined\n", UID);
 		return -1;
 	}
-
-	if (get_mode_verbose()) printf("User %s has password defined\n", UID);
 
 	memset(fileName, 0, sizeof(fileName));
 	sprintf(fileName, "USERS/%s/%s_login.txt", UID, UID);
@@ -243,16 +224,12 @@ int Logout(char * UID) {
 		return 0;
 	}
 
-	if (get_mode_verbose()) printf("User %s is logged in\n", UID);
-
 	unlink(fileName);
 	return 1;
 }
 
 int Unregister(char * UID) {
 	char fileName[PATHNAME_SIZE];
-
-	if (get_mode_verbose()) printf("Unregistering user %s\n", UID);
 
 	sprintf(fileName, "USERS/%s/%s_pass.txt", UID, UID);
 	if (!checkAssetFile(fileName)) {
@@ -269,14 +246,12 @@ int Unregister(char * UID) {
 		return -2;
 	}
 
-	if (get_mode_verbose()) printf("User %s is logged in\n", UID);
 	unlink(fileName);
 
 	return 0;
 }
 
 int CreateAuction(char * UID, char*name, char * asset_fname, char * start_value, char * time_active, char * start_datetime, time_t start_fulltime, char * file_size, int socket_fd) {
-	if (get_mode_verbose()) printf("Creating auction\n");
 
 	char fileName[PATHNAME_SIZE];
 
@@ -339,7 +314,6 @@ int CreateAuction(char * UID, char*name, char * asset_fname, char * start_value,
 	memset(fileName, 0, sizeof(fileName));
 	sprintf(fileName, "AUCTIONS/%s/ASSET/%s", AID, asset_fname);
 	long fsize = atol(file_size);
-	if (get_mode_verbose()) printf("File size: %ld\n", fsize);
 	ServerReceiveFile(fileName, fsize, socket_fd);
 
 	char test[2];
@@ -373,7 +347,6 @@ int CreateAuction(char * UID, char*name, char * asset_fname, char * start_value,
 }
 
 int CloseAuction(char * AID, char * UID) {
-	if (get_mode_verbose()) printf("Closing auction %s\n", AID);
 
 	char fileName[PATHNAME_SIZE];
 
@@ -437,8 +410,6 @@ int CloseAuction(char * AID, char * UID) {
 
 	time_passed = now - atol(start_fulltime);
 
-	if (get_mode_verbose()) printf("End datetime: %s\n", end_datetime_str);
-
 	memset(fileName, 0, sizeof(fileName));
 
 	sprintf(fileName, "%s %ld", end_datetime_str, time_passed);
@@ -460,8 +431,6 @@ int GetHighestBid(char * AID) {
 	char curPath[PATHNAME_SIZE];
 	int n_entries, name_len;
 
-	if (get_mode_verbose()) printf("Getting highest bid from auction %s\n", AID);
-
 	// Check if the auction exists
 	sprintf(curPath, "AUCTIONS/%s/BIDS/", AID);
 	if (checkAssetFile(curPath)) {
@@ -480,8 +449,6 @@ int GetHighestBid(char * AID) {
 
 	int entries = n_entries;
 	long value = 0;
-
-	if (get_mode_verbose()) printf("Number of entries: %d\n", n_entries);
 
 	for (int i = n_entries -1; i >= 0; i--) {
 		name_len=strlen(filelist[i]->d_name);
@@ -504,10 +471,6 @@ int GetHighestBid(char * AID) {
 
 int Bid(char * AID, char * UID, char * value) {
 	char fileName[PATHNAME_SIZE];
-
-	if (get_mode_verbose()) printf("Bidding on auction %s\n", AID);
-
-	if (get_mode_verbose()) printf("UID: %s\nValue: %s\n", UID, value);
 
 	time_t now;
 	time(&now);
@@ -559,8 +522,6 @@ int Bid(char * AID, char * UID, char * value) {
 	}
 
 	int highestBid = GetHighestBid(AID);
-  if (get_mode_verbose()) printf("Highest bid: %d\n", highestBid);
-	if (get_mode_verbose()) printf("Bid value: %ld\n", atol(value));
 
 	int numeric_value = atoi(value);
 

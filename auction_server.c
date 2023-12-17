@@ -353,8 +353,6 @@ void list_myauctions_handling(char* message, struct sockaddr* to_addr, socklen_t
 
     strtok(message, " ");    // This only gets the "LMA " string
 
-    if (get_mode_verbose()) printf("message: %s\n", message);
-
     // Get the user ID and verify if it's a 6-digit number
     token = strtok(NULL, "\n");
     if (!verify_format_id(token)) {
@@ -379,8 +377,6 @@ void list_myauctions_handling(char* message, struct sockaddr* to_addr, socklen_t
         return;
     }
 
-    if (get_mode_verbose()) printf("num_auctions: %d\n", num_auctions);
-
     strcpy(response, "RMA OK");
     ptr = response + 6;
     char aux[SMALL_BUFFER];
@@ -394,6 +390,9 @@ void list_myauctions_handling(char* message, struct sockaddr* to_addr, socklen_t
     strcpy(ptr, "\n");
 
     free(auction_list);
+
+    if (get_mode_verbose()) 
+        printf("My auctions: User %s requested created auctions (%s created).\n", userID, num_auctions);
 
     server_udp_send(response, to_addr, to_addr_len);
 }
@@ -449,6 +448,9 @@ void list_mybids_handling(char* message, struct sockaddr* to_addr, socklen_t to_
     free(bid_list);
     strcpy(ptr, "\n");
 
+    if (get_mode_verbose()) 
+        printf("My bids: User %s requested bidded auctions (%s created).\n", userID, num_auctions);
+
     server_udp_send(response, to_addr, to_addr_len);
 }
 
@@ -494,6 +496,9 @@ void list_auctions_handling(char * message, struct sockaddr* to_addr, socklen_t 
     free(auction_list);
     strcpy(ptr, "\n");
 
+    if (get_mode_verbose()) 
+        printf("List all: Received request. %s auctions returned.\n", num_auctions);
+
     server_udp_send(response, to_addr, to_addr_len);
 }  
 
@@ -533,7 +538,10 @@ void show_record_handling(char * message, struct sockaddr* to_addr, socklen_t to
 
     // Adds a newline to the end of the response
     response[strlen(response)] = '\n';
-    if (get_mode_verbose()) printf("response: %s\n", response);
+
+    if (get_mode_verbose()) 
+        printf("Show record: Requested record of auction #%s.\n", AID);
+
     server_udp_send(response, to_addr, to_addr_len);
 }
 
@@ -599,7 +607,6 @@ void open_auction_handling(int socket_fd) {
 
     if (get_mode_verbose()) {
         printf("Open auction: User %s is trying to open an auction.\n", UID);
-        printf("Open auction: Password: %s\n", password);
         printf("Open auction: Name: %s\n", name);
         printf("Open auction: Start value: %s\n", start_value);
         printf("Open auction: Time active: %s\n", timea_active);
@@ -643,6 +650,9 @@ void open_auction_handling(int socket_fd) {
     sprintf(res, "ROA OK %03d\n", AID);
     server_tcp_send(socket_fd, res, strlen(res));
 
+    if (get_mode_verbose()) 
+        printf("Open auction: Assigned auction number %s.\n", AID);
+
     return;
 
 }
@@ -675,7 +685,6 @@ void close_auction_handling(int socket_fd) {
     if (get_mode_verbose()) {
         printf("Close auction: User %s is trying to close an auction.\n", UID);
         printf("Close auction: Auction ID: %s\n", AID);
-        printf("Close auction: Password: %s\n", password);
     }
 
     if (!verify_format_id(UID) || !verify_format_password(password) || !verify_format_AID(AID)) {
@@ -720,6 +729,9 @@ void close_auction_handling(int socket_fd) {
             server_tcp_send(socket_fd, "RCL END\n", 8);
             return;
     }
+
+    if(get_mode_verbose())
+        printf("Close Auction: Auction is now closed.\n");
 
     server_tcp_send(socket_fd, "RCL ERR\n", 8);
     return;
@@ -854,7 +866,9 @@ void bid_handling(int socket_fd) {
         }
     }
 
-    if (get_mode_verbose()) printf("userID: %s\nuserPasswd: %s\nauctionID: %s\nauctionValue: %s\n", userID, userPasswd, auctionID, auctionValue);
+    if (get_mode_verbose()) 
+        printf("Bid: User %s has requested a bid of value %s for auction %s\nauctionID: %s\nauctionValue: %s\n", 
+                userID, auctionValue, auctionID);
 
     // Tries to create the bid in the db
     int status = Bid(auctionID, userID, auctionValue);
@@ -866,21 +880,26 @@ void bid_handling(int socket_fd) {
         break;
     case -1:
         // Auction has ended
+        if (get_mode_verbose()) printf("Bid: Request rejected - auction is closed\n");
         server_tcp_send(socket_fd, "RBD NOK\n", 8);
         break;
     case -2:
         // Highest bid is higher than the one given
+        if (get_mode_verbose()) printf("Bid: Request rejected - there is a higher bid\n");
         server_tcp_send(socket_fd, "RBD REF\n", 8);
         break;
     case -3:
         // User is the owner of the auction
+        if (get_mode_verbose()) printf("Bid: Request rejected - the owner cannot bid in its own auction\n");
         server_tcp_send(socket_fd, "RBD ILG\n", 8);
         break;
     case -4:
         // User is not logged in
+        if (get_mode_verbose()) printf("Bid: Request rejected - no user logged in\n");
         server_tcp_send(socket_fd, "RBD NLG\n", 8);
         break;
     default:
+        if (get_mode_verbose()) printf("Bid: Request rejected - internal error\n");
         server_tcp_send(socket_fd, "RBD ERR\n", 8);
         break;
     }
