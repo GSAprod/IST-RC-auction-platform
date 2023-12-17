@@ -20,6 +20,18 @@
 
 char port[PORT_SIZE];
 
+void sig_handler(int signo) {
+    if (signo == SIGINT) {
+        printf("SIGINT received. Shutting down server.\n");
+        UDP_free();
+        TCP_free();
+        exit(EXIT_SUCCESS);
+    }
+    UDP_free();
+    TCP_free();
+    exit(EXIT_FAILURE);
+}
+
 void set_program_parameters(int argc, char* argv[]) {
     int port_int;
 
@@ -950,7 +962,7 @@ int handle_tcp_request() {
     }
 
     // Set a timeout in case the socket is stuck on read/write
-    timeout.tv_sec = 5;
+    timeout.tv_sec = TIMEOUT;
     timeout.tv_usec = 0;
     if(setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout,
             sizeof timeout) < 0 ||
@@ -1006,6 +1018,9 @@ int main(int argc, char *argv[]) {
     set_program_parameters(argc, argv);
     InitDatabase();
 
+    //Handle sigint
+    signal(SIGINT, sig_handler);
+
     // Set up both UDP and TCP connections
     udp_fd = server_setup_UDP(port);
     if (udp_fd == -1) {
@@ -1027,7 +1042,7 @@ int main(int argc, char *argv[]) {
         current_fds = inputs;   // Reload mask
 
         memset((void *) &timeout, 0, sizeof(timeout));
-        timeout.tv_sec = 5;     // Set a timeout for every select function
+        timeout.tv_sec = TIMEOUT;     // Set a timeout for every select function
 
         // Wait on select until a timeout has occurred
         out_fds = select(FD_SETSIZE, &current_fds, (fd_set *) NULL, (fd_set *) NULL, (struct timeval *) &timeout);

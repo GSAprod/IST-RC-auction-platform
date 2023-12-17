@@ -25,7 +25,7 @@
 #define MAX_FILE_SIZE 10485760
 #define FILE_SIZE_STR 10
 
-
+#define TIMEOUT 5
 #define PORT_SIZE 8
 
 
