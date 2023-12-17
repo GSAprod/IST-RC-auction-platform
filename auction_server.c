@@ -149,7 +149,6 @@ void login_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_l
     token = strtok(NULL, " ");
     if (!verify_format_id(token)) {
         if (get_mode_verbose()) printf("Invalid UDP request made to server.\n");
-        //? Should we check if the status is -1? If so, what should we do?
         server_udp_send("ERR\n", to_addr, to_addr_len);
         return;
     }
@@ -159,7 +158,6 @@ void login_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_l
     token = strtok(NULL, "\n");
     if (!verify_format_password(token)) {
         if (get_mode_verbose()) printf("Invalid UDP request made to server.\n");
-        //? Should we check if the status is -1? If so, what should we do?
         server_udp_send("ERR\n", to_addr, to_addr_len);
         return;
     }
@@ -170,28 +168,24 @@ void login_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_l
         // In this case, there would be an error when a login attempt is made.
         if (get_mode_verbose()) 
             printf("Login: A error occurred when user %s was logging in.\n", userID);
-        //? Same here
         server_udp_send("ERR\n", to_addr, to_addr_len);
 
     } else if (status == -1) {
         // In this case, the user and password don't match
         if (get_mode_verbose()) 
             printf("Login: Incorrect credentials given - user %s\n", userID);
-        //? Same here
         server_udp_send("RLI NOK\n", to_addr, to_addr_len);
 
     } else if (status == 0) {
         // In this case, a new user is created in the database
         if (get_mode_verbose()) 
             printf("Login: New user with ID %s has been registered.\n", userID);
-        //? Same here
         server_udp_send("RLI REG\n", to_addr, to_addr_len);
 
     } else if (status == 1) {
         // In this case, the login is successful
         if (get_mode_verbose()) 
             printf("Login: User %s has logged in\n", userID);
-        //? Same here
         server_udp_send("RLI OK\n", to_addr, to_addr_len);
     } 
 
@@ -217,7 +211,6 @@ void logout_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_
     token = strtok(NULL, " ");
     if (!verify_format_id(token)) {
         if (get_mode_verbose()) printf("Invalid UDP request made to server.\n");
-        //? Should we check if the status is -1? If so, what should we do?
         server_udp_send("ERR\n", to_addr, to_addr_len);
         return;
     }
@@ -227,7 +220,6 @@ void logout_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_
     token = strtok(NULL, "\n");
     if (!verify_format_password(token)) {
         if (get_mode_verbose()) printf("Invalid UDP request made to server.\n");
-        //? Should we check if the status is -1? If so, what should we do?
         server_udp_send("ERR\n", to_addr, to_addr_len);
         return;
     }
@@ -239,19 +231,16 @@ void logout_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_
         case -2:
             if (get_mode_verbose()) 
                 printf("Logout: Invalid password or password error for user %s\n", userID);
-            //? Same here
             server_udp_send("ERR\n", to_addr, to_addr_len);
             break;
         case -1:
             if (get_mode_verbose()) 
                 printf("Logout: User %s not registered in database\n", userID);
-            //? Same here
             server_udp_send("RLO UNR\n", to_addr, to_addr_len);
             break;
         case 0:
             if (get_mode_verbose()) 
                 printf("Logout: User %s is not logged in\n", userID);
-            //? Same here
             server_udp_send("RLO NOK\n", to_addr, to_addr_len);
             break;
         case 1:
@@ -259,13 +248,11 @@ void logout_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_
             if (status != 1) {
                 if (get_mode_verbose()) 
                     printf("Logout: User %s is not logged in\n", userID);
-                //? Same here
                 server_udp_send("RLO NOK\n", to_addr, to_addr_len);
                 break;
             } else {
                 if (get_mode_verbose()) 
                     printf("Logout: User %s has logged out\n", userID);
-                //? Same here
                 server_udp_send("RLO OK\n", to_addr, to_addr_len);
                 break;
             }
@@ -293,7 +280,6 @@ void unregister_handling(char* message, struct sockaddr* to_addr, socklen_t to_a
     token = strtok(NULL, " ");
     if (!verify_format_id(token)) {
         if (get_mode_verbose()) printf("Invalid UDP request made to server.\n");
-        //? Should we check if the status is -1? If so, what should we do?
         server_udp_send("ERR\n", to_addr, to_addr_len);
         return;
     }
@@ -303,7 +289,6 @@ void unregister_handling(char* message, struct sockaddr* to_addr, socklen_t to_a
     token = strtok(NULL, "\n");
     if (!verify_format_password(token)) {
         if (get_mode_verbose()) printf("Invalid UDP request made to server.\n");
-        //? Should we check if the status is -1? If so, what should we do?
         server_udp_send("ERR\n", to_addr, to_addr_len);
         return;
     }
@@ -315,19 +300,16 @@ void unregister_handling(char* message, struct sockaddr* to_addr, socklen_t to_a
         case -2:
             if (get_mode_verbose()) 
                 printf("Unregister: Invalid password or password error for user %s\n", userID);
-            //? Same here
             server_udp_send("ERR\n", to_addr, to_addr_len);
             break;
         case -1:
             if (get_mode_verbose()) 
                 printf("Unregister: User %s not registered in database\n", userID);
-            //? Same here
             server_udp_send("RUR UNR\n", to_addr, to_addr_len);
             break;
         case 0:
             if (get_mode_verbose()) 
                 printf("Unregister: User %s is not logged in\n", userID);
-            //? Same here
             server_udp_send("RUR NOK\n", to_addr, to_addr_len);
             break;
         case 1:
@@ -335,13 +317,11 @@ void unregister_handling(char* message, struct sockaddr* to_addr, socklen_t to_a
             if (status != 0) {
                 if (get_mode_verbose()) 
                     printf("Unregister: User %s is not logged in\n", userID);
-                //? Same here
                 server_udp_send("RUR NOK\n", to_addr, to_addr_len);
                 break;
             } else {
                 if (get_mode_verbose()) 
                     printf("Unregister: Unregistered user %s\n", userID);
-                //? Same here
                 server_udp_send("RUR OK\n", to_addr, to_addr_len);
                 break;
             }
@@ -370,12 +350,12 @@ void list_myauctions_handling(char* message, struct sockaddr* to_addr, socklen_t
     token = strtok(NULL, "\n");
     if (!verify_format_id(token)) {
         if (get_mode_verbose()) printf("Invalid UDP request made to server.\n");
-        //? Should we check if the status is -1? If so, what should we do?
         server_udp_send("ERR\n", to_addr, to_addr_len);
         return;
     }
     strcpy(userID, token);
 
+    // Gets the number of auctions and saves the auctions in the auction_list
     struct AUCTIONLIST * auction_list = NULL;
     num_auctions = GetAuctionsListByUser(userID, &auction_list);
     if (num_auctions == -1) {
@@ -385,7 +365,6 @@ void list_myauctions_handling(char* message, struct sockaddr* to_addr, socklen_t
     }
     if (num_auctions == 0) {
         if (get_mode_verbose()) printf("List my auctions: User %s has no ongoing auctions.\n", userID);
-        //? Same here
         server_udp_send("RMA NOK\n", to_addr, to_addr_len);
         free(auction_list);
         return;
@@ -397,6 +376,7 @@ void list_myauctions_handling(char* message, struct sockaddr* to_addr, socklen_t
     ptr = response + 6;
     char aux[SMALL_BUFFER];
     for(int i = 0; i < num_auctions; i++) {
+        // Adds the auction info to the response
         sprintf(aux, " %s %d", auction_list[i].AID, auction_list[i].active);
         strcpy(ptr, aux);
         ptr += strlen(aux);
@@ -406,10 +386,17 @@ void list_myauctions_handling(char* message, struct sockaddr* to_addr, socklen_t
 
     free(auction_list);
 
-    // TODO Enviar string
     server_udp_send(response, to_addr, to_addr_len);
 }
 
+/***
+ * Sends back a list of auctions that a certain user has bidded
+ * 
+ * @param message The UDP request that contains the info necessary for the login.
+ * It should have this format: 'LMB UID'
+ * @param to_addr The address where the UDP message should be sent to
+ * @param to_addr_len The length of the address where the UDP message is sent
+*/
 void list_mybids_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_len) {
     char* token, *ptr;
     char userID[UID_SIZE], response[LIST_BUFFER];
@@ -422,13 +409,13 @@ void list_mybids_handling(char* message, struct sockaddr* to_addr, socklen_t to_
     token = strtok(NULL, "\n");
     if (!verify_format_id(token)) {
         if (get_mode_verbose()) printf("Invalid UDP request made to server.\n");
-        //? Should we check if the status is -1? If so, what should we do?
         server_udp_send("ERR\n", to_addr, to_addr_len);
         return;
     }
 
     strcpy(userID, token);
 
+    // Gets the number of auctions by user and saves the auctions in the auction_list
     num_auctions = GetAuctionsListByUserBidded(userID, &bid_list);
     if (num_auctions == -1) {
         if (get_mode_verbose()) printf("List my bids: User %s is not logged in.\n", userID);
@@ -437,7 +424,6 @@ void list_mybids_handling(char* message, struct sockaddr* to_addr, socklen_t to_
     }
     if (num_auctions == 0) {
         if (get_mode_verbose()) printf("List my bids: User %s has no BIDS.\n", userID);
-        //? Same here
         server_udp_send("RMB NOK\n", to_addr, to_addr_len);
         return;
     }
@@ -446,6 +432,7 @@ void list_mybids_handling(char* message, struct sockaddr* to_addr, socklen_t to_
     ptr = response + 6;
     char aux[SMALL_BUFFER];
     for(int i = 0; i < num_auctions; i++) {
+        // Adds the auction info to the response
         sprintf(aux, " %s %d", bid_list[i].AID, bid_list[i].active);
         strcpy(ptr, aux);
         ptr += strlen(aux);
@@ -453,10 +440,17 @@ void list_mybids_handling(char* message, struct sockaddr* to_addr, socklen_t to_
     free(bid_list);
     strcpy(ptr, "\n");
 
-    // TODO Enviar string
     server_udp_send(response, to_addr, to_addr_len);
 }
 
+/***
+ * Sends back a list of all auctions
+ * 
+ * @param message The UDP request that contains the info necessary for the login.
+ * It should have this format: 'LST'
+ * @param to_addr The address where the UDP message should be sent to
+ * @param to_addr_len The length of the address where the UDP message is sent
+*/
 void list_auctions_handling(char * message, struct sockaddr* to_addr, socklen_t to_addr_len) {
     char *ptr;
     char response[LIST_BUFFER];
@@ -465,6 +459,7 @@ void list_auctions_handling(char * message, struct sockaddr* to_addr, socklen_t 
 
     strtok(message, " ");    // This only gets the "UNR " string
 
+    // Gets the number of auctions and saves the auctions in the auction_list
     num_auctions = GetAuctionsList(&auction_list);
     if (get_mode_verbose()) printf("num_auctions: %d\n", num_auctions);
     if (num_auctions == -1) {
@@ -474,7 +469,6 @@ void list_auctions_handling(char * message, struct sockaddr* to_addr, socklen_t 
     }
     if (num_auctions == 0) {
         if (get_mode_verbose()) printf("List auctions: There are no ongoing auctions.\n");
-        //? Same here
         server_udp_send("RLS NOK\n", to_addr, to_addr_len);
         return;
     }
@@ -482,6 +476,7 @@ void list_auctions_handling(char * message, struct sockaddr* to_addr, socklen_t 
     strcpy(response, "RLS OK");
     ptr = response + 6;
     char aux[SMALL_BUFFER];
+    // Writes the auctions to the response
     for(int i = 0; i < num_auctions; i++) {
         sprintf(aux, " %s %d", auction_list[i].AID, auction_list[i].active);
         strcpy(ptr, aux);
@@ -490,10 +485,17 @@ void list_auctions_handling(char * message, struct sockaddr* to_addr, socklen_t 
     free(auction_list);
     strcpy(ptr, "\n");
 
-    // TODO Enviar string
     server_udp_send(response, to_addr, to_addr_len);
 }  
 
+/***
+ * Sends back the information of an auction, if it exists
+ * 
+ * @param message The UDP request that contains the info necessary for the login.
+ * It should have this format: 'SRC AID'
+ * @param to_addr The address where the UDP message should be sent to
+ * @param to_addr_len The length of the address where the UDP message is sent
+*/
 void show_record_handling(char * message, struct sockaddr* to_addr, socklen_t to_addr_len) {
     char response[LIST_BUFFER];
     char * res_ptr = response;
@@ -506,7 +508,6 @@ void show_record_handling(char * message, struct sockaddr* to_addr, socklen_t to
     strcpy(AID, strtok(NULL, "\n"));
     if (!verify_format_AID(AID)) {
         if (get_mode_verbose()) printf("Invalid UDP request made to server.\n");
-        //? Should we check if the status is -1? If so, what should we do?
         server_udp_send("ERR\n", to_addr, to_addr_len);
         return;
     }
@@ -514,17 +515,25 @@ void show_record_handling(char * message, struct sockaddr* to_addr, socklen_t to
     strcpy(res_ptr, "RRC OK ");
     res_ptr += 7;
 
+    // Get the auction info and writes it to the response
     if (GetAuctionInfo(AID, res_ptr) < 0) {
         if (get_mode_verbose()) printf("Show record: Auction %s does not exist.\n", AID);
         server_udp_send("RRC NOK\n", to_addr, to_addr_len);
         return;
     }
 
+    // Adds a newline to the end of the response
     response[strlen(response)] = '\n';
     if (get_mode_verbose()) printf("response: %s\n", response);
     server_udp_send(response, to_addr, to_addr_len);
 }
 
+/***
+ * Opens an auction, if the user is logged in and the information given is valid.
+ * Copies the file given in the TCP request to the server
+ * 
+ * @param socket_fd The socket where the parameters must be read
+*/
 void open_auction_handling(int socket_fd) {
     char buffer[SMALL_BUFFER];
     char UID[UID_SIZE], password[PASSWORD_SIZE], name[FILENAME_SIZE], start_value[VALUE_SIZE], timea_active[TIMEPASSED_SIZE], Fname[FILENAME_SIZE], Fsize[FILE_SIZE_STR];
@@ -589,8 +598,16 @@ void open_auction_handling(int socket_fd) {
         printf("Open auction: File size: %s\n", Fsize);
     }
 
+    if (!verify_format_id(UID) || !verify_format_password(password)) {
+        if (get_mode_verbose()) {
+            printf("Invalid TCP request made to server.\n");
+            printf("ERRORS IN:\nver_UID: %d\nver_aid: %d\nver_pass: %d\nver_time: %d\nver_size: %d\n", verify_format_id(UID), verify_format_id(start_value), verify_format_password(password), verify_format_AID(timea_active), verify_format_AID(Fsize));
+        }
+        server_tcp_send(socket_fd, "ROA ERR\n", 8);
+        return;
+    }
+
     // Check if the message is valid
-    // TODO Verify
     if (CheckUserLogged(UID, password) != 1) {
         sprintf(res, "ROA NLG\n");
         server_tcp_send(socket_fd, res, strlen(res));
@@ -600,10 +617,11 @@ void open_auction_handling(int socket_fd) {
     char start_time[DATETIME_SIZE];
     time_t now;
 
+    // Get the current time and the time str 
     time(&now);
-
     timeToString(now, start_time);
 
+    // Creates the auction in the DB. If it is successful, it returns the AID
     int AID = CreateAuction(UID, name, Fname, start_value, timea_active, start_time, now, Fsize, socket_fd);
 
     if (AID <= 0) {
@@ -612,6 +630,7 @@ void open_auction_handling(int socket_fd) {
         return;
     }
 
+    // Sends the AID to the client
     sprintf(res, "ROA OK %03d\n", AID);
     server_tcp_send(socket_fd, res, strlen(res));
 
@@ -619,6 +638,12 @@ void open_auction_handling(int socket_fd) {
 
 }
 
+
+/***
+ * Closes an auction, if it exists and the user is the owner of the auction
+ * 
+ * @param socket_fd The socket where the parameters must be read
+*/
 void close_auction_handling(int socket_fd) {
     char buffer[SMALL_BUFFER];
 
@@ -662,6 +687,7 @@ void close_auction_handling(int socket_fd) {
         return;
     }
 
+    // Tries to close the auction
     status = CloseAuction(AID, UID);
     switch (status) {
         case 0:
@@ -713,6 +739,7 @@ void show_asset_handling(int socket_fd) {
         ptr++;
     }
 
+    // Verify if AID is valid
     if(!verify_format_AID(aid) || i == AID_SIZE) {
         if (get_mode_verbose()) printf("Invalid TCP request made to server.\n");
         memset(buffer, 0, sizeof buffer);
@@ -721,6 +748,7 @@ void show_asset_handling(int socket_fd) {
         return;
     }
 
+    // Starts interaction with the database
     if(ShowAsset(aid, socket_fd) == -1) {
         memset(buffer, 0, sizeof buffer);
         strcpy(buffer, "RSA NOK\n");
@@ -819,25 +847,32 @@ void bid_handling(int socket_fd) {
 
     if (get_mode_verbose()) printf("userID: %s\nuserPasswd: %s\nauctionID: %s\nauctionValue: %s\n", userID, userPasswd, auctionID, auctionValue);
 
+    // Tries to create the bid in the db
     int status = Bid(auctionID, userID, auctionValue);
     switch (status)
     {
     case 0:
+        // Bid was successful
         server_tcp_send(socket_fd, "RBD ACC\n", 8);
         break;
     case -1:
+        // Auction has ended
         server_tcp_send(socket_fd, "RBD NOK\n", 8);
         break;
     case -2:
+        // Highest bid is higher than the one given
         server_tcp_send(socket_fd, "RBD REF\n", 8);
         break;
     case -3:
+        // User is the owner of the auction
         server_tcp_send(socket_fd, "RBD ILG\n", 8);
         break;
     case -4:
+        // User is not logged in
         server_tcp_send(socket_fd, "RBD NLG\n", 8);
         break;
     default:
+        server_tcp_send(socket_fd, "RBD ERR\n", 8);
         break;
     }
 
@@ -867,12 +902,6 @@ int handle_udp_request() {
     // Get the first 4 characters of the message to determine its type
     strncpy(message_type, buffer, 4);
 
-    //? Each routine should have the following parameters:
-    //? - the buffer that has be passed for analysing the message
-    //? - the sender_addr to know where the reponse should be sent to
-    //? - the sender_addr_len that complements the sender_addr
-    //? eg. login_handling(char* message, struct sockaddr* to_addr, socklen_t to_addr_len)
-    //? Check the "else" clause for an example of how the responses should be sent
     if(!strcmp(message_type, "LIN ")) {
         login_handling(buffer, &sender_addr, sender_addr_len);
     } else if (!strcmp(message_type, "LOU ")) {
@@ -900,6 +929,13 @@ int handle_udp_request() {
     return 0;
 }
 
+/***
+ * Receives a TCP message, processes it and sends its corresponding response
+ * depending on the type of message.
+ * 
+ * @return 0 if the request is processed correctly, -1 if there was an error
+ * processing the request  
+*/
 int handle_tcp_request() {
     int socket_fd, status;
     char buffer[TINY_BUFFER];
@@ -937,12 +973,6 @@ int handle_tcp_request() {
         return -1;
     }
 
-    //? Each routine should have the following parameters:
-    //? - the socket_fd that represents the socket connection 
-    //? eg. login_handling(int socket_fd)
-    //? To read the parameters of the message, use server_tcp_receive with
-    //? the socket_fd passed into the routine.
-    //? Check the "else" clause for an example of how the responses should be sent
     if(!strcmp(buffer, "OPA ")) {
         open_auction_handling(socket_fd);
     } else if(!strcmp(buffer, "CLS ")) {
@@ -965,7 +995,6 @@ int handle_tcp_request() {
 
     return 0;
 }
-
 
 int main(int argc, char *argv[]) {
     int tcp_fd, udp_fd, out_fds;
