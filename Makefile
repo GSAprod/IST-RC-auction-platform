@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -Wextra -g
+CFLAGS=-Wall -Wextra
 
 all:
 	[ -d "./client" ] || mkdir "./client"
