@@ -1,8 +1,36 @@
-# IST-RC-projeto
+# IST-RC-auction-platform
 
 This repository contains the files used to solve the auction platform project of the Computer Networks subject from the Computer Science and Engineering course @ Instituto Superior Técnico (1st Semester - 2023/2024).
 
-Below is a copy of the project's statement.
+## Install and run the project
+
+After cloning the repository onto the main device, compile both the server and
+client executables using this command:
+
+```
+make
+```
+
+Navigate to the `ASDIR` directory and run this command:
+
+```
+./AS [-p SERVER_PORT] [-v]
+```
+
+Optionally, you can specify a server port with the `-p` argument (if ommitted, it will use port `58057`), or run the server in verbose mode with `-v`.
+
+In a second terminal, run the client application using this command:
+
+```
+./client [-n SERVER_IP] [-p SERVER_PORT]
+```
+
+If the `-n` flag is ommitted, the client will connect to a server in `localhost`; if the `-p` flag is ommitted, the client will connect to a server in the port `58057`. 
+
+---
+---
+
+Below is a copy of the project statement.
 
 ## 1. Introduction
 
